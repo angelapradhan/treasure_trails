@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Treasure Trails - Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="auth-page-body">
+    <!-- Header consistent with reference image_ff76a5.jpg -->
+    <nav class="nav-container auth-nav">
+        <div class="nav-left">
+            <!-- Link to Landing Page -->
+            <a href="index.html" class="logo-link">
+                <span class="mini-logo">TREASURE <br> TRAILS</span>
+            </a>
+        </div>
+        <ul class="nav-menu">
+            <li><a href="index.html" style="text-decoration: none; color: inherit;">Welcome</a></li>
+            <li>News</li>
+            <li>Explore</li>
+            <li>Gear</li>
+            <li>Community</li>
+        </ul>
+        <div class="nav-right">
+            <a href="register.html" class="btn-nav outline">Register</a>
+        </div>
+    </nav>
+
+    <main class="split-container">
+        <!-- Left Side: Visuals (Similar to card stack in reference) -->
+        <div class="visual-side">
+            <div class="image-stack">
+                <img src="images/land.webp" alt="Trail View" class="stack-img main">
+                <div class="stack-img ghost-1"></div>
+                <div class="stack-img ghost-2"></div>
+            </div>
+            <div class="slider-dots">
+                <span class="dot active"></span>
+                <span class="dot"></span>
+                <span class="dot"></span>
+            </div>
+        </div>
+
+        <!-- Right Side: Login Form -->
+        <div class="form-side">
+            <div class="login-box">
+                <h2>Join the Society of Trails</h2>
+                <p class="form-subtext">Log in to your account to uncover hidden secrets and unlock exclusive rewards.</p>
+                
+                <form>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" placeholder="Email">
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" placeholder="Password">
+                    </div>
+                    
+                    <button type="submit" class="btn-gold-large">Log In</button>
+                    <a href="#" class="forgot-link">Forgot Password?</a>
+                    
+                    <div class="separator"><span>or</span></div>
+                    
+                    <button type="button" class="btn-google-auth">
+                        <img src="https://www.gstatic.com/images/branding/product/1x/gsa_512dp.png" alt="G" width="18">
+                    </button>
+                </form>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
