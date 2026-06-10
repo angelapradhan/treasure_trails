@@ -85,7 +85,6 @@
         const password = document.getElementById('reg-password').value;
 
         try {
-            // Express API endpoint server local initialization context rules path
             const response = await fetch('http://localhost:5000/api/auth/register', {
                 method: 'POST',
                 headers: {
@@ -98,7 +97,7 @@
 
             if (response.ok) {
                 alert('Registration Successful!');
-                window.location.href = 'login.html'; // Redirects straight to login view portal
+                window.location.href = 'login.html'; 
             } else {
                 alert(data.message || 'Registration structural failure.');
             }
