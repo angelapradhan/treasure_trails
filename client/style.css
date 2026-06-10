@@ -1,0 +1,357 @@
+/* --- 1. Global Reset & Core Styles --- */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Helvetica Neue', sans-serif;
+}
+
+.landing-body, .auth-page-body {
+    background: radial-gradient(circle, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.9) 100%), 
+                url('images/land.webp');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    overflow: hidden;
+}
+
+/* --- 2. Navigation & Logo Fixes (Perfect Alignment Across All Pages) --- */
+.nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 30px 100px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.8) 0%, transparent 100%);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+}
+
+.nav-left { flex: 1; }
+
+.logo-link {
+    text-decoration: none !important;
+}
+
+.mini-logo {
+    color: #C5A059;
+    font-weight: 900;
+    line-height: 1.1;
+    font-size: 1rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+}
+
+.nav-menu {
+    display: flex;
+    list-style: none;
+    gap: 50px;
+    flex: 2;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Fixed Font Size: Dynamic styling for both raw text (li) and links (li a) */
+.nav-menu li, .nav-menu li a, .nav-link {
+    font-size: 0.85rem !important; /* Forces uniform size across all pages */
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.7) !important;
+    text-decoration: none;
+    cursor: pointer;
+    transition: 0.3s ease;
+    padding-bottom: 5px;
+    border-bottom: 2px solid transparent; /* Smooth hover line transitions */
+}
+
+.nav-menu li a:visited, .nav-link:visited, .logo-link:visited {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+/* Fixed Active State: Auto underlines yellow/gold when landing or any page is active */
+.nav-menu li.active, .nav-menu li.active a, .nav-menu li a:hover, .nav-menu li:hover {
+    color: #fff !important;
+    border-bottom: 2px solid #C5A059 !important;
+}
+
+.nav-right {
+    display: flex;
+    gap: 15px;
+    flex: 1;
+    justify-content: flex-end;
+}
+
+.btn-nav {
+    text-decoration: none;
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 12px 30px;
+    border-radius: 2px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: 0.3s;
+}
+
+.btn-nav:hover {
+    border-color: #C5A059;
+    color: #C5A059;
+}
+
+/* --- 3. Hero Section (Landing Page) --- */
+.hero-container {
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.main-title {
+    font-size: 7.5rem;
+    font-weight: 900;
+    text-align: center;
+    line-height: 0.85;
+    color: #C5A059;
+    letter-spacing: -2px;
+    text-shadow: 0px 10px 40px rgba(0,0,0,1);
+    transform: perspective(500px) rotateX(10deg);
+}
+
+.main-subtitle {
+    text-align: center;
+    letter-spacing: 10px;
+    margin-top: 30px;
+    font-size: 1.1rem;
+    opacity: 0.9;
+    font-weight: 700;
+}
+
+/* --- 4. Split Layout (Auth Pages) --- */
+.split-container {
+    display: flex;
+    width: 100%;
+    max-width: 1400px; 
+    margin-top: 100px; 
+    padding: 0 80px;
+    align-items: center;
+    justify-content: center;
+}
+
+.visual-side {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.form-side {
+    flex: 1;
+    padding-left: 100px;
+}
+
+/* Image Stack Scale */
+.image-stack {
+    position: relative;
+    width: 450px;
+    height: 450px;
+}
+
+.stack-img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    background-size: cover;
+    border: 3px solid rgba(197, 160, 89, 0.3);
+}
+
+.stack-img.main { 
+    z-index: 3; 
+    transform: rotate(-2deg);
+    background-image: url('image_0ac10a.jpg');
+}
+
+.stack-img.ghost-1 { 
+    background: #1a1a1a; 
+    z-index: 2; 
+    transform: rotate(5deg) translateX(20px);
+    opacity: 0.6;
+}
+
+.stack-img.ghost-2 { 
+    background: #1a1a1a; 
+    z-index: 1; 
+    transform: rotate(12deg) translateX(40px);
+    opacity: 0.3;
+}
+
+/* --- 5. Form Styling --- */
+.login-box h2 {
+    font-family: 'Georgia', serif;
+    font-size: 2.8rem;
+    color: #fff;
+    margin-bottom: 15px;
+}
+
+.form-subtext {
+    color: #888;
+    margin-bottom: 40px;
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.form-group { margin-bottom: 25px; }
+
+.form-group label {
+    display: block;
+    color: #C5A059;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    letter-spacing: 1.5px;
+}
+
+.form-group input {
+    width: 100%;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    padding: 18px;
+    color: #e0e0e0;
+    border-radius: 4px;
+    outline: none;
+    font-size: 1rem;
+}
+
+.forgot-link {
+    display: block;
+    text-align: right;
+    color: #fff !important;
+    text-decoration: underline !important;
+    font-size: 0.85rem;
+    margin-top: 10px;
+    transition: 0.3s;
+}
+
+.forgot-link:visited {
+    color: #fff !important;
+}
+
+.forgot-link:hover {
+    opacity: 0.8;
+}
+
+.btn-gold-large {
+    width: 100%;
+    background: #C5A059;
+    border: none;
+    padding: 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin: 20px 0 15px 0;
+    transition: all 0.3s ease;
+}
+
+.btn-gold-large:hover {
+    background: #AD8B45;
+    transform: translateY(-2px);
+}
+
+.separator {
+    text-align: center;
+    border-bottom: 1px solid #333;
+    line-height: 0.1em;
+    margin: 35px 0;
+}
+
+.separator span { background: #000; padding: 0 10px; color: #555; }
+
+.btn-google-auth {
+    width: 100%;
+    background: transparent;
+    border: 1px solid #333;
+    padding: 15px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    cursor: pointer;
+}
+
+/* --- 6. Registration/UX Specifics --- */
+.step-label {
+    color: #C5A059;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+    font-weight: 700;
+    display: block;
+}
+
+.switch-auth {
+    margin-top: 30px;
+    font-size: 0.95rem;
+    color: #666;
+    text-align: center;
+}
+
+.switch-auth a {
+    color: #C5A059;
+    text-decoration: none;
+    font-weight: 700;
+    margin-left: 8px;
+}
+
+.slider-dots {
+    display: flex;
+    gap: 15px;
+    margin-top: 50px;
+}
+
+.dot {
+    width: 35px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.dot.active {
+    background: #C5A059;
+}
+
+.bottom-action {
+    position: absolute;
+    bottom: 40px;
+    right: 50px;
+}
+
+.btn-gold-small {
+    background: transparent;
+    border: 1px solid #C5A059;
+    color: #C5A059;
+    padding: 10px 20px;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s;
+    border-radius: 2px;
+}
+
+.btn-gold-small:hover {
+    background: #C5A059;
+    color: black;
+}
