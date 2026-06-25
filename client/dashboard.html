@@ -414,6 +414,103 @@
     </div>
   </div>
 
-  
+  <script>
+    let coins = 1250;
+
+    const charactersData = [
+      { id: "char_1", name: "Sherpa Scout", passive: "High Altitude Stamina (+20% Energy)", cost: 0, unlocked: true, color: "#8B0000" },
+      { id: "char_2", name: "Tharu Pathbreaker", passive: "Faster Terai Ruins Traversal (+10% Speed)", cost: 500, unlocked: false, color: "#E6E6FA" },
+      { id: "char_3", name: "Rana Archaeologist", passive: "Clue Decipher Bonus (+15% Insights)", cost: 800, unlocked: false, color: "#C3B091" },
+      { id: "char_4", name: "Gorkha Vanguard", passive: "Combat Shield (Clears Map Obstacles)", cost: 1000, unlocked: false, color: "#2E461A" },
+      { id: "char_5", name: "Yeti Mystic", passive: "Blizzard Aura (Immune to Freeze traps)", cost: 1500, unlocked: false, color: "#E6F2FF" },
+      { id: "char_6", name: "Newa Artisan", passive: "Golden Magnet (Earn +25% More Coins)", cost: 2000, unlocked: false, color: "#1A1A1A" },
+      { id: "char_7", name: "Kumari Seer", passive: "Divine Fortune (Reveals Secret Chests)", cost: 3000, unlocked: false, color: "#C41E3A" }
+    ];
+
+    let activeCharacterId = "char_1"; 
+    let selectedCharacterId = "char_1"; 
+
+    function renderCharactersList() {
+      const container = document.getElementById('character-list-container');
+      container.innerHTML = ""; 
+
+      charactersData.forEach(char => {
+        const isSelected = char.id === selectedCharacterId;
+        const card = document.createElement('div');
+        card.className = `item-card ${isSelected ? 'selected-card' : ''}`;
+        card.setAttribute('onclick', `selectCharacter('${char.id}')`);
+
+        let buttonHTML = "";
+        if (char.id === activeCharacterId) {
+          buttonHTML = `<button class="buy-btn active-status">Active</button>`;
+        } else if (char.unlocked) {
+          buttonHTML = `<button class="buy-btn unlocked-status" onclick="equipCharacter('${char.id}', event)">Select</button>`;
+        } else {
+          buttonHTML = `<button class="buy-btn" onclick="buyCharacter('${char.id}', ${char.cost}, event)">${char.cost} C</button>`;
+        }
+
+        card.innerHTML = `
+          <div class="item-card-left">
+            <div class="item-mini-badge" style="background:${char.color}; border:2px solid #C5A059; color:#fff;">
+              ${char.name.substring(0,2)}
+            </div>
+            <div class="item-info">
+              <h4>${char.name} ${char.unlocked ? '🔓' : '🔒'}</h4>
+              <p>${char.passive}</p>
+            </div>
+          </div>
+          <div>${buttonHTML}</div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function selectCharacter(id) {
+      selectedCharacterId = id;
+      const char = charactersData.find(c => c.id === id);
+      
+      document.getElementById('char-display-name').innerText = char.name;
+      document.getElementById('char-display-passive').innerText = char.passive;
+      
+      document.querySelectorAll('.char-template').forEach(tpl => tpl.style.display = 'none');
+      
+      const activeTemplateIndex = id.split('_')[1];
+      const targetSvgNode = document.getElementById(`tpl_char_${activeTemplateIndex}`);
+      if(targetSvgNode) {
+        targetSvgNode.style.display = 'block';
+      }
+
+      const imgContainer = document.getElementById('char-img-container');
+      if (char.unlocked) {
+        imgContainer.classList.remove('locked-char'); 
+      } else {
+        imgContainer.classList.add('locked-char');    
+      }
+
+      renderCharactersList();
+    }
+
+    function buyCharacter(id, cost, event) {
+      event.stopPropagation(); 
+      if (coins >= cost) {
+        coins -= cost;
+        document.getElementById('coin-count').innerText = coins.toLocaleString();
+        charactersData.find(c => c.id === id).unlocked = true;
+        selectCharacter(id); 
+      } else {
+        alert("Inadequate coins! Hunt more maps to collect gold.");
+      }
+    }
+
+    function equipCharacter(id, event) {
+      event.stopPropagation();
+      activeCharacterId = id;
+      selectCharacter(id);
+    }
+
+    window.onload = function() {
+      selectCharacter('char_1');
+    };
+  </script>
 </body>
 </html>
