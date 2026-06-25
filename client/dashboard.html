@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Treasure Trails - Core Hub</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0d0d0d;
+      color: #e0e0e0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOP HEADER NAVIGATION */
+    header {
+      background: #121212;
+      border-bottom: 2px solid #C5A059;
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 70px;
+    }
+    .logo {
+      color: #C5A059;
+      font-weight: 900;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+    }
+    .stats-container {
+      display: flex;
+      gap: 25px;
+      align-items: center;
+    }
+    .stat-pill {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .stat-pill span { color: #C5A059; font-weight: bold; }
+
+    /* CORE DASHBOARD WORKSPACE */
+    .dashboard-wrapper {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 70px);
+    }
+
+    /* LEFT SIDE MENU CONTROLS */
+    .sidebar {
+      width: 80px;
+      background: #111;
+      border-right: 1px solid #222;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 20px;
+      gap: 20px;
+    }
+    .nav-btn {
+      width: 55px;
+      height: 55px;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 6px;
+      color: #888;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      font-weight: bold;
+      text-decoration: none; /* Added to keep links clean */
+    }
+    .nav-btn.active {
+      border-color: #C5A059;
+      color: #C5A059;
+      background: #221c12;
+    }
+
+    /* LOBBY DISPLAY FIELD */
+    .main-lobby {
+      flex: 1;
+      background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.95)), url('https://images.unsplash.com/photo-1627856013091-fed6e4e30025?q=80&w=1200') no-repeat center center/cover;
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      padding: 30px;
+    }
+
+    /* CENTER VISUAL CHARACTER AREA WITH BOTTOM GAP */
+    .character-showcase {
+      position: absolute;
+      bottom: 90px; 
+      left: 38%;
+      transform: translateX(-50%);
+      height: 70%;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      align-items: center;
+      width: 450px;
+    }
+    .char-image-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+    }
+
+    /* FLOATING SPOTLIGHT BEAM */
+    .yellow-light-beam {
+      position: absolute;
+      bottom: 10px;
+      width: 260px;
+      height: 100%;
+      background: linear-gradient(to top, rgba(197, 160, 89, 0.35) 0%, rgba(197, 160, 89, 0.05) 70%, transparent 100%);
+      clip-path: polygon(25% 0%, 75% 0%, 100% 100%, 0% 100%);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* 100% CODE-BASED SVG VECTOR SYSTEM */
+    .vector-char-container {
+      width: 280px;
+      height: 320px;
+      z-index: 3;
+      margin-bottom: 15px;
+      filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.7));
+      animation: floatIdle 3s ease-in-out infinite;
+      transition: filter 0.4s ease;
+    }
+    
+    @keyframes floatIdle {
+      0% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+      100% { transform: translateY(0px); }
+    }
+
+    .char-template { display: none; width: 100%; height: 100%; }
+
+    .char-image-container.locked-char .vector-char-container {
+      filter: brightness(0.08) contrast(1.2) grayscale(1);
+    }
+    
+    .char-image-container:not(.locked-char) .vector-char-container {
+      filter: drop-shadow(0px 15px 20px rgba(0,0,0,0.7)) brightness(1.1);
+    }
+
+    .locked-overlay {
+      display: none;
+      position: absolute;
+      top: 45%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(20, 20, 20, 0.85);
+      color: #ff4d4d;
+      padding: 10px 25px;
+      font-weight: bold;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      z-index: 4;
+      border: 1px solid #ff4d4d;
+      box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+    }
+    .char-image-container.locked-char .locked-overlay {
+      display: block;
+    }
+    
+    .char-standin {
+      position: absolute;
+      bottom: 5px;
+      width: 240px;
+      height: 24px;
+      background: rgba(197, 160, 89, 0.15);
+      border: 2px solid rgba(197, 160, 89, 0.5);
+      box-shadow: 0 0 25px rgba(197, 160, 89, 0.6), inset 0 0 15px rgba(197, 160, 89, 0.3);
+      border-radius: 50%;
+      z-index: 2;
+    }
+    
+    .char-label {
+      background: rgba(0,0,0,0.85);
+      border: 1px solid #C5A059;
+      padding: 8px 25px;
+      margin-bottom: 20px;
+      font-weight: bold;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      z-index: 5;
+      text-align: center;
+    }
+    .char-label .char-passive-text {
+      display: block;
+      font-size: 0.75rem;
+      color: #aaa;
+      text-transform: none;
+      margin-top: 4px;
+    }
+
+    /* RIGHT SIDEBAR PANEL */
+    .right-panel {
+      width: 360px;
+      background: rgba(18, 18, 18, 0.95);
+      border-left: 1px solid #222;
+      border-top: 3px solid #C5A059;
+      border-radius: 4px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      overflow-y: auto;
+      height: 95%;
+    }
+    .panel-title {
+      font-size: 1rem;
+      color: #C5A059;
+      text-transform: uppercase;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
+      padding-bottom: 8px;
+    }
+    .item-card {
+      background: #161616;
+      border: 1px solid #2a2a2a;
+      border-radius: 5px;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+    .item-card.selected-card { border-color: #C5A059; background: #221c12; }
+    .item-card-left { display: flex; align-items: center; gap: 12px; }
+    
+    .item-mini-badge {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      font-size: 0.8rem;
+    }
+    .item-info h4 { font-size: 0.85rem; color: #fff; }
+    .item-info p { font-size: 0.7rem; color: #aaa; }
+    
+    .buy-btn {
+      background: #C5A059;
+      color: #000;
+      font-weight: bold;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 3px;
+      cursor: pointer;
+      font-size: 0.75rem;
+    }
+    .buy-btn.active-status { background: #1e7e34; color: #fff; cursor: default; }
+    .buy-btn.unlocked-status { background: #333; color: #C5A059; border: 1px solid #C5A059; }
+
+    .action-footer { position: absolute; bottom: 30px; left: 30px; }
+    .start-btn {
+      background: linear-gradient(135deg, #C5A059, #9e7d3b);
+      color: #000;
+      font-size: 1.5rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      padding: 15px 45px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">Treasure Trails</div>
+    <div class="stats-container">
+      <div class="stat-pill">LVL <span>14</span></div>
+      <div class="stat-pill">Coins: <span id="coin-count">1,250</span></div>
+      <div class="stat-pill">Crystals: <span>45</span></div>
+      <div class="stat-pill" style="border-color:#C5A059;">Profile</div>
+    </div>
+  </header>
+
+  <div class="dashboard-wrapper">
+    <div class="sidebar">
+      <a href="dashboard.html" class="nav-btn active">Char</a>
+      <a href="map.html" class="nav-btn">Map</a> <a href="#" class="nav-btn">Gear</a>
+      <a href="#" class="nav-btn">Guild</a>
+    </div>
+
+    <div class="main-lobby">
+      <div class="character-showcase">
+        <div id="showcase-label" class="char-label">
+          <span id="char-display-name">Sherpa Scout</span>
+          <span id="char-display-passive" class="char-passive-text">Loading...</span>
+        </div>
+        
+        <div id="char-img-container" class="char-image-container">
+          <div class="yellow-light-beam"></div>
+          <div class="locked-overlay" id="lock-text">Locked 🔒</div>
+          
+          <svg class="vector-char-container" viewBox="0 0 100 100">
+            
+            <g id="tpl_char_1" class="char-template">
+              <rect x="22" y="20" width="3" height="75" fill="#8B5A2B" rx="1"/>
+              <path d="M35,55 L65,55 L72,95 L28,95 Z" fill="#5C4033"/>
+              <path d="M48,55 L52,55 L55,95 L45,95 Z" fill="#D2B48C"/>
+              <path d="M32,36 C32,15 68,15 68,36" fill="#8B0000"/>
+              <path d="M30,34 Q26,48 34,42" fill="#FFD700"/>
+              <path d="M70,34 Q74,48 66,42" fill="#FFD700"/>
+              <ellipse cx="50" cy="36" rx="11" ry="9" fill="#FFD1A9"/>
+              <circle cx="46" cy="35" r="1.5" fill="#000"/> <circle cx="54" cy="35" r="1.5" fill="#000"/>
+              <circle cx="23.5" cy="55" r="4" fill="#8B0000"/>
+            </g>
+
+            <g id="tpl_char_2" class="char-template">
+              <path d="M35,55 L65,55 L70,95 L30,95 Z" fill="#F5F5F5"/>
+              <rect x="35" y="65" width="30" height="4" fill="#D2143A"/>
+              <ellipse cx="50" cy="36" rx="10" ry="9" fill="#E0AC69"/>
+              <path d="M34,30 Q50,20 66,30 Q50,34 34,30" fill="#E6E6FA" stroke="#DCDCDC"/>
+              <circle cx="47" cy="35" r="1.5" fill="#000"/> <circle cx="53" cy="35" r="1.5" fill="#000"/>
+              <path d="M42,44 Q50,50 58,44" stroke="#C0C0C0" stroke-width="2.5" fill="none"/>
+              <rect x="20" y="50" width="8" height="22" fill="#DEB887" rx="2" transform="rotate(-15 20 50)"/>
+            </g>
+
+            <g id="tpl_char_3" class="char-template">
+              <path d="M35,55 L65,55 L68,95 L32,95 Z" fill="#C3B091"/>
+              <rect x="42" y="55" width="16" height="15" fill="#8B7355"/>
+              <ellipse cx="50" cy="36" rx="10" ry="9" fill="#FFE0BD"/>
+              <path d="M42,39 Q50,43 58,39" stroke="#332211" stroke-width="2" fill="none"/>
+              <circle cx="47" cy="34" r="1.5" fill="#000"/> <circle cx="53" cy="34" r="1.5" fill="#000"/>
+              <path d="M32,30 Q50,14 68,30" fill="#8B7355"/>
+              <ellipse cx="50" cy="30" rx="20" ry="3" fill="#A08866"/>
+            </g>
+
+            <g id="tpl_char_4" class="char-template">
+              <path d="M25,35 L35,45" stroke="#C0C0C0" stroke-width="4" stroke-linecap="round"/>
+              <path d="M75,35 L65,45" stroke="#C0C0C0" stroke-width="4" stroke-linecap="round"/>
+              <path d="M35,55 L65,55 L68,95 L32,95 Z" fill="#2E461A"/>
+              <path d="M38,58 L46,75 L54,58" fill="#556B2F"/>
+              <ellipse cx="50" cy="35" rx="10" ry="9" fill="#E0AC69"/>
+              <path d="M30,28 L70,24 L66,32 L34,32 Z" fill="#111"/>
+              <circle cx="50" cy="27" r="2.5" fill="#FFD700"/>
+              <circle cx="46" cy="35" r="1.5" fill="#000"/> <circle cx="54" cy="35" r="1.5" fill="#000"/>
+            </g>
+
+            <g id="tpl_char_5" class="char-template">
+              <rect x="18" y="10" width="4" height="85" fill="#4682B4" rx="1"/>
+              <polygon points="20,0 26,12 14,12" fill="#00FFFF"/>
+              <path d="M25,45 C15,70 25,95 50,95 C75,95 85,70 75,45 C70,30 30,30 25,45 Z" fill="#E6F2FF" stroke="#B0C4DE" stroke-width="1.5"/>
+              <circle cx="44" cy="48" r="3" fill="#00FFFF"/>
+              <circle cx="56" cy="48" r="3" fill="#00FFFF"/>
+              <path d="M32,35 Q20,20 28,28" stroke="#B0C4DE" stroke-width="4" stroke-linecap="round" fill="none"/>
+              <path d="M68,35 Q80,20 72,28" stroke="#B0C4DE" stroke-width="4" stroke-linecap="round" fill="none"/>
+            </g>
+
+            <g id="tpl_char_6" class="char-template">
+              <path d="M35,55 L65,55 L70,95 L30,95 Z" fill="#1A1A1A"/>
+              <path d="M35,55 L42,95" stroke="#D2143A" stroke-width="4" fill="none"/>
+              <rect x="30" y="90" width="40" height="5" fill="#D2143A"/>
+              <ellipse cx="50" cy="36" rx="10" ry="9" fill="#FFC896"/>
+              <circle cx="38" cy="32" r="4" fill="#111"/>
+              <circle cx="47" cy="35" r="1.5" fill="#000"/> <circle cx="53" cy="35" r="1.5" fill="#000"/>
+              <circle cx="36" cy="30" r="2" fill="#FF4500"/>
+              <ellipse cx="50" cy="70" rx="7" ry="8" fill="#FFD700"/>
+              <rect x="46" y="60" width="8" height="4" fill="#FFD700"/>
+            </g>
+
+            <g id="tpl_char_7" class="char-template">
+              <path d="M32,52 L68,52 L74,95 L26,95 Z" fill="#C41E3A"/>
+              <path d="M40,52 Q50,62 60,52" stroke="#FFD700" stroke-width="3" fill="none"/>
+              <path d="M37,55 Q50,68 63,55" stroke="#FFD700" stroke-width="2" fill="none"/>
+              <ellipse cx="50" cy="36" rx="11" ry="10" fill="#FFE5B4"/>
+              <circle cx="45" cy="36" r="1.5" fill="#000"/> <circle cx="55" cy="36" r="1.5" fill="#000"/>
+              <path d="M48,28 Q50,24 52,28 Q50,32 48,28" fill="#D2143A"/>
+              <polygon points="50,10 65,24 35,24" fill="#FFD700"/>
+              <rect x="42" y="24" width="16" height="5" fill="#B8860B"/>
+            </g>
+
+          </svg>
+          
+          <div class="char-standin"></div>
+        </div>
+      </div>
+
+      <div class="action-footer">
+        <button class="start-btn" onclick="alert('Launching Mission...')">Start Hunt</button>
+      </div>
+
+      <div class="right-panel">
+        <div class="panel-title">Character Workshop</div>
+        <div id="character-list-container"></div>
+      </div>
+    </div>
+  </div>
+
+  
+</body>
+</html>
