@@ -66,3 +66,25 @@ app.post('/api/register', async (req, res) => {
 
 });
 
+// Login Route
+app.post('/api/login', async (req, res) => {
+    const { email, password } = req.body;
+    try {
+       const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+        
+        if (result.rows.length > 0) {
+            const user = result.rows[0];
+            // In a real project, use bcrypt to compare hashed passwords!
+            if (user.password === password) {
+                res.json({ message: "Login successful", token: "fake-jwt-token" });
+            } else {
+                res.status(401).json({ error: "Invalid password" });
+            }
+        } else {
+            res.status(404).json({ error: "User not found" });
+        }
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send("Server Error");
+    }
+});
