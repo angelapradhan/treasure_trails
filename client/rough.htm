@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Treasure Trails - Mustang Pass</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #C5A059;
+      --gold-light: #e5c382;
+      --bg-overlay: rgba(10, 10, 10, 0.96);
+      --border-gold: 1px solid #C5A059;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100%; height: 100%; overflow: hidden;
+      background-color: #050508; font-family: 'Outfit', sans-serif; color: #e0e0e0; user-select: none;
+    }
+    #viewport-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; cursor: crosshair; }
+    #render-canvas { width: 100%; height: 100%; display: block; }
+    
+    .click-to-play {
+      position: absolute; inset: 0; background: rgba(5, 5, 8, 0.93);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      box-shadow: 0 10px 30px rgba(197, 160, 89, 0.4); transition: all 0.3s ease; font-family: 'Outfit', sans-serif;
+    }
+    .play-btn:hover { box-shadow: 0 15px 40px rgba(197, 160, 89, 0.65); transform: translateY(-2px); }
+    .crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; transition: opacity 0.2s; }
+    .crosshair::before, .crosshair::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.55); }
+    .crosshair::before { top: 4px; left: -10px; width: 30px; height: 2px; }
+    .crosshair::after { top: -10px; left: 4px; width: 2px; height: 30px; }
+    
+    .hud-element { position: absolute; z-index: 10; pointer-events: auto; }
+    .top-hud { position: absolute; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; z-index: 10; }
+    .hud-card {
+      background: rgba(15, 15, 15, 0.85); border: 1px solid rgba(197, 160, 89, 0.3); padding: 10px 20px; border-radius: 6px;
+      backdrop-filter: blur(8px); box-shadow: 0 4px 20px rgba(0,0,0,0.5); display: flex; align-items: center; gap: 15px; pointer-events: auto;
+    }
+    .hud-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #999; }
+    .hud-value { font-size: 1.1rem; font-weight: 800; color: var(--gold); }
+    .quest-log { max-width: 320px; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .quest-item { font-size: 0.8rem; display: flex; align-items: center; gap: 8px; color: #bbb; }
+    .quest-item.completed { color: #4dfa62; text-decoration: line-through; opacity: 0.7; }
+    .quest-item::before { content: '■'; color: var(--gold); font-size: 0.7rem; }
+    .quest-item.completed::before { content: '✓'; color: #4dfa62; }
+    
+    .minimap-container { top: 20px; right: 20px; width: 140px; height: 140px; border-radius: 50%; border: 2px solid var(--gold); overflow: hidden; background: rgba(10, 10, 10, 0.9); box-shadow: 0 10px 25px rgba(0,0,0,0.6); }
+    #minimap-canvas { width: 100%; height: 100%; }
+    
+    .interact-prompt {
+      position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+      background: rgba(15, 15, 15, 0.9); border: 1px solid var(--gold); padding: 12px 25px; border-radius: 6px;
+      font-size: 1rem; font-weight: 800; color: #fff; display: none; animation: pulseAlert 1.5s infinite; z-index: 10;
+      box-shadow: 0 8px 30px rgba(197, 160, 89, 0.25); white-space: nowrap;
+    }
+    @keyframes pulseAlert {
+      0% { box-shadow: 0 0 10px rgba(197, 160, 89, 0.2); border-color: rgba(197, 160, 89, 0.4); }
+      50% { box-shadow: 0 0 25px rgba(197, 160, 89, 0.5); border-color: var(--gold); }
+      100% { box-shadow: 0 0 10px rgba(197, 160, 89, 0.2); border-color: rgba(197, 160, 89, 0.4); }
+    }
+    .key-badge { background: var(--gold); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; margin-right: 8px; }
+    .controls-guide { bottom: 20px; left: 20px; background: rgba(10, 10, 10, 0.7); padding: 8px 15px; border-radius: 4px; font-size: 0.75rem; color: #999; display: flex; gap: 15px; border: 1px solid rgba(255,255,255,0.05); }
+    .audio-toggle { bottom: 20px; right: 20px; background: rgba(15, 15, 15, 0.85); border: 1px solid rgba(255, 255, 255, 0.1); width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--gold); transition: all 0.2s ease; }
+    .audio-toggle:hover { border-color: var(--gold); transform: scale(1.05); }
+    
+    /* MODALS */
+    .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(5, 5, 5, 0.85); backdrop-filter: blur(10px); z-index: 100; display: none; justify-content: center; align-items: center; }
+    .modal-container { background: var(--bg-overlay); border: var(--border-gold); border-radius: 8px; width: 480px; max-width: 90%; padding: 30px; box-shadow: 0 25px 60px rgba(0,0,0,0.85); display: flex; flex-direction: column; gap: 20px; position: relative; }
+    .modal-header { border-bottom: 1px solid rgba(197, 160, 89, 0.2); padding-bottom: 10px; text-align: center; }
+    .modal-title { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1.4rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+    .modal-body { font-size: 0.9rem; line-height: 1.6; color: #ddd; }
+    .close-modal-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #777; font-size: 1.3rem; cursor: pointer; transition: color 0.2s; }
+    .close-modal-btn:hover { color: #fff; }
+    
+    .choices-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+    .choice-item { background: #151515; border: 1px solid #333; padding: 12px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; transition: all 0.2s ease; text-align: left; }
+    .choice-item:hover { border-color: var(--gold); background: #201a10; transform: translateX(3px); }
+    .choice-item.disabled { pointer-events: none; opacity: 0.7; }
+    /* JIGSAW PUZZLE */
+    .jigsaw-container { display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 10px 0; }
+    #jigsaw-canvas { border: 2px solid var(--gold); cursor: pointer; background: #111; }
+    .jigsaw-timer { font-size: 1.2rem; font-weight: 800; color: #ff4d4d; text-align: center; letter-spacing: 1px; }
+    
+    /* COMBINATION LOCK */
+    .combination-slots { display: flex; justify-content: center; gap: 15px; margin: 20px 0; height: 100px; }
+    .combo-slot { width: 80px; height: 80px; border: 2px dashed rgba(197, 160, 89, 0.3); border-radius: 8px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.4); position: relative; cursor: pointer; }
+    .combo-slot:hover { border-color: rgba(197, 160, 89, 0.6); }
+    .fragment-token { width: 70px; height: 70px; background: linear-gradient(135deg, #2e281c, #16120b); border: 2px solid var(--gold); border-radius: 6px; color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 0.65rem; font-weight: bold; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.4); transition: all 0.2s ease; text-align: center; padding: 4px; }
+    .fragment-token:hover { transform: scale(1.05); border-color: #fff; }
+    .fragments-pool { display: flex; justify-content: center; gap: 20px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; min-height: 80px; }
+    .error-flash { color: #ff4d4d; font-weight: bold; text-align: center; margin-top: 10px; font-size: 0.85rem; min-height: 25px; }
+    .modal-action-btn { width: 100%; background: var(--gold); color: #000; border: none; padding: 12px; font-weight: bold; font-size: 0.95rem; border-radius: 4px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: background-color 0.2s; font-family: 'Outfit', sans-serif; }
+    .modal-action-btn:hover { background-color: var(--gold-light); }
+    
+    /* OVERLAYS */
+    .victory-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.7) 0%, rgba(5,5,5,0.98) 100%); z-index: 120; display: none; flex-direction: column; justify-content: center; align-items: center; gap: 20px; }
+    .victory-banner { font-family: 'Cinzel', serif; font-size: clamp(2rem, 6vw, 4rem); color: var(--gold); text-transform: uppercase; font-weight: 900; letter-spacing: 4px; text-shadow: 0 0 40px rgba(197, 160, 89, 0.7); animation: slideInVictory 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes slideInVictory { 0% { transform: translateY(-50px) scale(0.8); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+    .victory-subtitle { font-size: 1.2rem; color: #ddd; margin-bottom: 20px; text-align: center; padding: 0 20px; }
+    
+    .loot-card { background: rgba(15,15,15,0.9); border: var(--border-gold); border-radius: 6px; padding: 20px 40px; display: flex; flex-direction: column; align-items: center; gap: 10px; box-shadow: 0 10px 40px rgba(197,160,89,0.15); margin-bottom: 30px; }
+    .loot-row { display: flex; align-items: center; gap: 15px; font-size: 1.8rem; font-weight: 800; color: #fff; }
+    .loot-row span { color: var(--gold); }
+    .return-btn { background: linear-gradient(135deg, var(--gold), #9e7d3b); color: #000; border: none; padding: 14px 40px; font-size: 1rem; font-weight: 900; cursor: pointer; border-radius: 5px; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 8px 25px rgba(197,160,89,0.4); transition: all 0.3s ease; font-family: 'Outfit', sans-serif; }
+    .return-btn:hover { box-shadow: 0 12px 35px rgba(197,160,89,0.6); transform: translateY(-2px); }
+    
+    /* CRITICAL OVERLAYS */
+    .danger-overlay {
+      position: absolute; inset: 0; background: rgba(255, 0, 0, 0.15); pointer-events: none; z-index: 90;
+      opacity: 0; transition: opacity 0.15s ease;
+    }
+  </style>
+</head>
+<body>
+  <!-- Red Damage Flash Overlay -->
+  <div id="danger-flash" class="danger-overlay"></div>
+  <div id="viewport-container">
+    <div class="click-to-play" id="lock-prompt">
+      div class="play-icon">🏔️</div>
+      <div class="play-title">Enter Mustang Pass</div>
+      <div class="play-subtitle">Click to lock your cursor and explore this walkable 3D map environment</div>
+      <button class="play-btn" onclick="requestLock()">ACTIVATE 3D VIEW &rarr;</button>
+    </div>
+    <div class="crosshair" id="screen-crosshair"></div>
+    <canvas id="render-canvas"></canvas>
+  </div>
+  <div class="top-hud">
+    <div style="display:flex; flex-direction:column; gap:15px;">
+      <div class="hud-card">
+        <div>
+          <div class="hud-title">Expedition Map</div>
+          <div id="hud-map-name" class="hud-value">Mustang Pass</div>
+        </div>
+        <div style="border-left:1px solid #333; padding-left:15px;">
+          <div class="hud-title">Active Character</div>
+          <div id="hud-char-name" class="hud-value">...</div>
+        </div>
+        <div style="border-left:1px solid #333; padding-left:15px;">
+          <div class="hud-title">Lives System</div>
+          <div id="lives-counter" class="hud-value" style="color:#ff4d4d; letter-spacing: 2px;">❤️ ❤️ ❤️</div>
+        </div>
+        <div style="border-left:1px solid #333; padding-left:15px;">
+          <div class="hud-title">Inventory</div>
+          <div id="inventory-counter" class="hud-value" style="color:#e0e0e0;">Relic Pieces: <span id="puzzle-pieces-count" style="color:var(--gold);">0/3</span></div>
+        </div>
+      </div>
+      <div class="hud-card quest-log">
+        <div class="hud-title" style="font-weight:800; border-bottom:1px solid #222; width:100%; padding-bottom:4px;">Mission Objectives</div>
+        <div id="quest-cp1" class="quest-item">Solve Checkpoint 1 (Muktinath Jigsaw Puzzle)</div>
+        <div id="quest-cp2" class="quest-item">Solve Checkpoint 2 (Mustang Story Quiz)</div>
+        <div id="quest-cp3" class="quest-item">Find 3 Hidden Keys scattered in the environment</div>
+        <div id="quest-final" class="quest-item">Unlock the Ancient Combination lock at the Main Sacred Chest</div>
+      </div>
+    </div>
+  </div>
+  <div class="minimap-container hud-element">
+    <canvas id="minimap-canvas"></canvas>
+  </div>
+  <div id="interact-prompt" class="interact-prompt">
+    <span class="key-badge">E</span> <span id="interact-text">Inspect Chest</span>
+  </div>
+  <div class="controls-guide hud-element">
+    <div>Move: <span style="color:#fff; font-weight:bold;">WASD / Arrows</span></div>
+    <div>Look: <span style="color:#fff; font-weight:bold;">Mouse (Locked)</span></div>
+    <div>Camera View: <span style="color:#fff; font-weight:bold;">V (Toggle Third Person)</span></div>
+    <div>Interact: <span style="color:#fff; font-weight:bold;">E</span></div>
+    <div>Exit Look: <span style="color:#fff; font-weight:bold;">ESC</span></div>
+  </div>
+  <div id="audio-toggle" class="audio-toggle hud-element">
+    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" id="audio-icon"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+  </div>
+
+  <!-- Checkpoint 1 Modal: Muktinath Jigsaw Puzzle -->
+  <div id="modal-checkpoint-1" class="modal-overlay">
+    div class="modal-container" style="width:480px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Muktinath Jigsaw Seal</h2>
+      </div>
+      <div class="modal-body Jigsaw-body">
+        <p style="margin-bottom:10px; text-align:center;">Reconstruct the Muktinath Temple image by clicking adjacent tiles to swap. Solve before time expires!</p>
+        <div class="jigsaw-container">
+          <div class="jigsaw-timer" id="jigsaw-timer-display">30s</div>
+          <canvas id="jigsaw-canvas" width="240" height="240"></canvas>
+        </div>
+        <div class="error-flash" id="jigsaw-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkpoint 2 Modal: Mustang Story Quiz -->
+  <div id="modal-checkpoint-2" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-title">Mustang Chronicles Quiz</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-checkpoint-2')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="quiz-question-title" style="margin-bottom:15px; font-weight:600; border-left:3px solid var(--gold); padding-left:12px;"></p>
+        <div class="choices-list" id="quiz-choices-container"></div>
+        <div class="error-flash" id="quiz-error"></div>
+      </div>
+    </div>
+  </div>
+  <!-- Checkpoint 3 Modal: Riddle 3 -->
+  <!-- Checkpoint 3 Modal: Scattered Keys Warning -->
+  <div id="modal-checkpoint-3" class="modal-overlay">
+    <div class="modal-container" style="width:380px;">
+      <div class="modal-header">
+        <h2 class="modal-title">The Three Hidden Keys</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-checkpoint-3')">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p style="font-weight:bold; margin-bottom:12px;">"Checkpoint 3 is locked!"</p>
+        <p style="font-size:0.8rem; color:#bbb; line-height:1.5;">You must search the surrounding environment to collect 3 hidden keys hidden under cultural landmarks, trees, or structural paths. Checkpoint 3 will clear when all keys are found.</p>
+        <button class="modal-action-btn" onclick="closeOverlay('modal-checkpoint-3')" style="margin-top:20px;">Begin Search</button>
+      </div>
+    </div>
+  </div>
+  <!-- Main Vault combination slot overlay -->
+  <div id="modal-combination" class="modal-overlay">
+    <div class="modal-container" style="width:520px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Ancient Seal Combination</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-combination')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="text-align:center; margin-bottom:15px;">Place the 3 relic fragments in the slots in order of altitude (Lumbini Plains &rarr; Kathmandu Valley &rarr; Himal Caves) to crack the security mechanism.</p>
+        <div class="combination-slots">
+          <div class="combo-slot" id="slot-0" onclick="removeFragment(0)"></div>
+          <div class="combo-slot" id="slot-1" onclick="removeFragment(1)"></div>
+          <div class="combo-slot" id="slot-2" onclick="removeFragment(2)"></div>
+        </div>
+        <div style="text-align:center; font-size:0.75rem; color:#888; margin-bottom:8px;">Relic Inventory Pool — click to place:</div>
+        <div class="fragments-pool" id="fragments-pool-container"></div>
+        <div class="error-flash" id="combo-error" style="margin-top:15px;"></div>
+        <button class="modal-action-btn" onclick="checkCombinationSubmit()" style="margin-top:10px;">Activate Seal</button>
+      </div>
+    </div>
+  </div>
+  <div id="modal-warning" class="modal-overlay">
+    <div class="modal-container" style="width:380px;">
+      <div class="modal-header">
+        <h2 class="modal-title" style="color:#ff4d4d;">Seal Sealed</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-warning')">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p style="font-size:1.1rem; font-weight:bold; margin-bottom:15px;">"The locking mechanisms require 3 specific fragments. Keep exploring!"</p>
+        <p style="font-size:0.8rem; color:#888;">You have only collected <span id="warning-pieces-collected" style="color:var(--gold); font-weight:bold;">0/3</span> fragments. Seek the glowing beacons across the map.</p>
+        <button class="modal-action-btn" onclick="closeOverlay('modal-warning')" style="margin-top:20px;">Resume Quest</button>
+      </div>
+    </div>
+  </div>
+  <!-- Game Over Modal -->
+  <div id="modal-gameover" class="modal-overlay" style="background: rgba(18, 5, 5, 0.95); z-index: 1000;">
+    <div class="modal-container" style="border-color: #ff4d4d; width:400px; text-align:center; box-shadow:0 0 35px rgba(255, 77, 77, 0.4);">
+      <h2 class="modal-title" style="color:#ff4d4d; font-size:1.8rem; margin-bottom:10px;">Expedition Failed</h2>
+      <p style="font-size:0.95rem; color:#bbb; line-height:1.6; margin-bottom:20px;">The hazards of the mountain route have depleted your strength. You have failed to claim the treasures of Mustang Pass.</p>
+      <button class="modal-action-btn" onclick="restartExpedition()" style="background:#ff4d4d; color:#fff; font-weight:800;">Restart Expedition</button>
+    </div>
+  </div>
+  <div id="victory-screen" class="victory-overlay">
+    <div class="victory-banner">Victory Claimed</div>
+    <div class="victory-subtitle">You cracked the Ancient Chest and recovered the Sacred Nepal Artifacts!</div>
+    <div class="loot-card">
+      <div class="hud-title">Expedition Rewards</div>
+      <div class="loot-row">🪙 <span id="earned-gold-value">250</span> Gold Coins</div>
+      <div class="quest-item" style="color:#4dfa62; border:none;">Level Up! LVL 14 &rarr; 15</div>
+    </div>
+    <button class="return-btn" onclick="returnToDashboard()">Return to Core Hub</button>
+  </div>
+  <script>
+    'use strict';
+    // Procedural sound synthesizer
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let isMuted = false;
+    function playSound(type) {
+      if (isMuted) return;
+      try {
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'tick') {
+          osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
+          gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.start(now); osc.stop(now + 0.08);
+        } else if (type === 'interact') {
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.25);
+          gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'success') {
+          osc.type = 'sine';
+          [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => osc.frequency.setValueAtTime(f, now + i * 0.1));
+          gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+          osc.start(now); osc.stop(now + 0.55);
+        } else if (type === 'failure') {
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
+          osc.frequency.linearRampToValueAtTime(100, now + 0.25);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'victory') {
+          [523.25, 587.33, 659.25, 698.46, 783.99, 880, 987.77, 1046.5].forEach((freq, i) => {
+            const tOsc = audioCtx.createOscillator(), tGain = audioCtx.createGain();
+            tOsc.connect(tGain); tGain.connect(audioCtx.destination);
+            tOsc.type = 'sine'; tOsc.frequency.setValueAtTime(freq, now + i * 0.12);
+            tGain.gain.setValueAtTime(0.1, now + i * 0.12); tGain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.3);
+            tOsc.start(now + i * 0.12); tOsc.stop(now + i * 0.12 + 0.3);
+          });
+        }
+      } catch (e) {}
+    }
+    document.getElementById('audio-toggle').onclick = () => {
+      isMuted = !isMuted;
+      document.getElementById('audio-icon').style.fill = isMuted ? '#555' : 'var(--gold)';
+    };
+     // Active Character configuration
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedChar = urlParams.get('selectedChar') || localStorage.getItem('nt_active_char') || 'char_1';
+    const CHARS = {
+      char_1: { name: "Sherpa Scout",      speed: 0.85, color: "#8B0000" },
+      char_2: { name: "Tharu Pathbreaker",  speed: 0.98, color: "#E6E6FA" },
+      char_3: { name: "Rana Archaeologist", speed: 0.85, color: "#C3B091" },
+      char_4: { name: "Gorkha Vanguard",    speed: 0.80, color: "#2E461A" },
+      char_5: { name: "Yeti Mystic",        speed: 1.02, color: "#E6F2FF" },
+      char_6: { name: "Newa Artisan",       speed: 0.85, color: "#1A1A1A" },
+      char_7: { name: "Kumari Seer",        speed: 0.72, color: "#C41E3A" }
+    };
+    const activeChar = CHARS[selectedChar] || CHARS.char_1;
+    document.getElementById('hud-char-name').innerText = activeChar.name;
+    // Environment and Theme Details
+    const THEME = {
+      sky: '#0f0702', ceil: '#1c0f05', floor: '#2a1a0d', floorD: '#140c06',
+      walls: {
+        1: [142, 68, 30],   // Layed dusty cliff orange/red
+        2: [158, 66, 51],   // Monastery Holy Red-Ochre Clay
+        3: [234, 230, 223], // Village house chalk white
+        4: [112, 122, 138]  // Monastery Holy Grey-Blue Clay
+      },
+       torch: 680
+    };
+    // Health/Lives System
+    let lives = 3;
+    function updateLivesUI() {
+      const container = document.getElementById('lives-counter');
+      container.innerHTML = "❤️ ".repeat(lives).trim();
+      if (lives <= 0) {
+        openGameOverModal();
+      }
+    }
+    function triggerDamage() {
+      lives--;
+      updateLivesUI();
+      playSound('failure');
+      const flash = document.getElementById('danger-flash');
+      flash.style.opacity = '1';
+      setTimeout(() => { flash.style.opacity = '0'; }, 300);
+      if (lives > 0) {
+        // Reset player to safe start
+        player.x = 650;
+        player.y = 800;
+        player.angle = Math.PI * 1.5;
+      }
+    }
+    function openGameOverModal() {
+      if (document.pointerLockElement) document.exitPointerLock();
+      openOverlay('modal-gameover');
+    }
+    window.restartExpedition = function() {
+      window.location.reload();
+    };
+    // 24x24 Map Grid
+    const MAP_SIZE = 24, TILE_SIZE = 64;
+    const MAP_GRID = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,3,3,3,3,3,3,3,1],
+      [1,0,2,2,0,2,2,0,2,2,0,0,0,0,0,0,3,3,3,3,3,3,3,1],
+      [1,0,2,2,0,2,2,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,1],
+           [1,0,0,0,0,0,0,0,2,2,2,0,4,4,4,0,0,0,0,3,3,3,0,1],
+      [1,0,2,2,2,2,2,0,2,0,0,0,0,0,2,0,0,0,0,0,0,0,0,1],
+      [1,0,2,0,0,0,2,0,2,0,0,0,0,0,2,0,2,2,2,2,2,2,0,1],
+      [1,0,2,0,0,0,2,0,2,2,2,0,2,2,2,0,2,0,0,0,0,2,0,1],
+      [1,0,2,2,0,2,2,0,0,0,0,0,0,0,0,0,2,0,3,3,0,2,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,3,3,0,2,0,1],
+      [1,0,0,0,0,0,0,0,2,2,2,2,2,2,0,0,2,0,0,0,0,2,0,1],
+      [1,0,2,2,2,2,0,0,2,2,2,2,2,2,0,0,2,2,2,0,2,2,0,1],
+      [1,0,2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,2,2,0,2,2,2,2,0,0,0,2,2,2,2,2,2,2,2,2,2,0,1],
+      [1,0,0,0,0,0,0,0,2,0,0,0,2,3,3,3,3,3,3,3,3,2,0,1],
+      [1,3,3,3,3,3,0,0,2,0,0,0,2,3,3,3,3,3,3,3,3,2,0,1],
+      [1,3,3,3,3,3,3,0,2,2,0,2,2,3,3,3,3,3,3,3,3,2,0,1],
+      [1,3,3,3,3,3,3,0,0,0,0,0,0,0,3,3,3,3,3,3,3,2,0,1],
+      [1,2,2,2,2,2,2,0,0,0,0,0,0,0,2,2,2,2,2,2,2,2,0,1],
+      [1,0,0,0,0,0,0,0,3,3,0,3,3,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,3,3,0,3,3,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+    function isSolid(gx, gy) { return gx < 0 || gx >= MAP_SIZE || gy < 0 || gy >= MAP_SIZE || MAP_GRID[gy][gx] > 0; }
+    // Character model and camera settings
+    const player = { x: 650, y: 800, angle: Math.PI * 1.5, fov: Math.PI / 3, speed: 2.8 * activeChar.speed, ms: 0.0022 };
+    let isThirdPerson = false;
+    let cameraBob = 0, cameraBobTime = 0;
+    let zBuffer = [], horizonBob = 0;
+    let walkTime = 0, mmTick = 0;
+    // Checkpoint nodes
+    const CHECKPOINTS = [
+      { id: 1, x: 4 * TILE_SIZE + 32,  y: 2 * TILE_SIZE + 32,  label: 'Muktinath Jigsaw', hex: '#4dfaff', rgb: [77, 250, 255], solved: false, qid: 'quest-cp1' },
+      { id: 2, x: 13 * TILE_SIZE + 32, y: 9 * TILE_SIZE + 32,  label: 'Mustang Quiz',    hex: '#ffe64d', rgb: [255, 230, 77], solved: false, qid: 'quest-cp2' },
+      { id: 3, x: 6 * TILE_SIZE + 32,  y: 15 * TILE_SIZE + 32, label: '3 Hidden Keys',   hex: '#ff4dfa', rgb: [255, 77, 250], solved: false, qid: 'quest-cp3' },
+      { id: 4, x: 21 * TILE_SIZE + 32, y: 12 * TILE_SIZE + 32, label: 'Final Treasure',  hex: '#ffb700', rgb: [255, 183, 0],   solved: false, final: true, qid: 'quest-final' }
+    ];
+    // Relic pieces
+    const FRAGS = [
+      { id: 'frag_a', icon: '📜', name: 'Relic Peak Caves Relief', sub: 'Mustang Caves' },
+      { id: 'frag_b', icon: '🗿', name: 'Relic Kali Gandaki Plain', sub: 'Mustang Plains' },
+      { id: 'frag_c', icon: '🏔', name: 'Relic Lo Manthang Village', sub: 'Mustang Valley' }
+    ];
+    // Sprite assets data structure
+    const sprites = [
+      // Stupas (Chorten) with golden spires
+      { type: 'chorten', x: 8 * TILE_SIZE + 32, y: 3 * TILE_SIZE + 32, scale: 1.1 },
+      { type: 'chorten', x: 15 * TILE_SIZE + 32, y: 18 * TILE_SIZE + 32, scale: 1.1 },
+      // Trees
+      { type: 'tree', x: 2 * TILE_SIZE + 32, y: 10 * TILE_SIZE + 32, scale: 1.3 },
+      { type: 'tree', x: 10 * TILE_SIZE + 32, y: 13 * TILE_SIZE + 32, scale: 1.2 },
+      { type: 'tree', x: 16 * TILE_SIZE + 32, y: 7 * TILE_SIZE + 32, scale: 1.3 },
+      // Electric poles
+      { type: 'pole', x: 7 * TILE_SIZE + 32, y: 5 * TILE_SIZE + 32, scale: 1.5 },
+      { type: 'pole', x: 12 * TILE_SIZE + 32, y: 17 * TILE_SIZE + 32, scale: 1.5 },
+      // Benches
+      { type: 'bench', x: 8 * TILE_SIZE + 32, y: 22 * TILE_SIZE + 32, scale: 0.8 },
+      { type: 'bench', x: 14 * TILE_SIZE + 32, y: 3 * TILE_SIZE + 32, scale: 0.8 },
+      // Garbage Piles
+      { type: 'garbage', x: 15 * TILE_SIZE + 32, y: 12 * TILE_SIZE + 32, scale: 0.6 },
+      { type: 'garbage', x: 5 * TILE_SIZE + 32, y: 18 * TILE_SIZE + 32, scale: 0.6 },
+      // Single Copper Prayer Wheels
+      { type: 'prayerwheel', x: 5 * TILE_SIZE + 32, y: 2 * TILE_SIZE + 32, scale: 0.8 },
+      { type: 'prayerwheel', x: 11 * TILE_SIZE + 32, y: 10 * TILE_SIZE + 32, scale: 0.8 },
+      // Muktinath Wall reference landmark
+      { type: 'spoutwall', x: 10 * TILE_SIZE + 32, y: 22 * TILE_SIZE + 32, scale: 1.0 },
+      // Checkpoint 3 Golden Keys (initially inactive)
+      { type: 'key1', x: 2 * TILE_SIZE + 32, y: 10 * TILE_SIZE + 42, scale: 0.5, hidden: true, collected: false },
+      { type: 'key2', x: 15 * TILE_SIZE + 32, y: 12 * TILE_SIZE + 42, scale: 0.5, hidden: true, collected: false },
+      { type: 'key3', x: 8 * TILE_SIZE + 32, y: 22 * TILE_SIZE + 42, scale: 0.5, hidden: true, collected: false },
+      // Obstacle Vehicles
+      { type: 'vehicle1', x: 2 * TILE_SIZE, y: 9 * TILE_SIZE + 32, scale: 1.0, isVehicle: true, dx: 3.2, minX: 1 * TILE_SIZE, maxX: 15 * TILE_SIZE },
+      { type: 'vehicle2', x: 7 * TILE_SIZE + 32, y: 11 * TILE_SIZE, scale: 1.0, isVehicle: true, dy: 4.2, minY: 10 * TILE_SIZE, maxY: 21 * TILE_SIZE }
+    ];
+    const INTERACT_R = 80;
+    let inventory = [], comboSlots = [null, null, null], nearCP = null, modalOpen = false;
+    // Keys quest state
+    let keysActive = false;
+    let keysCollected = 0;
+    // Viewport rendering canvases setup
+    const canvas3D = document.getElementById('render-canvas');
+    const viewport = document.getElementById('viewport-container');
+    const ctx = canvas3D.getContext('2d');
+    const lockPrompt = document.getElementById('lock-prompt');
+    const crosshair = document.getElementById('screen-crosshair');
+     function requestLock() {
+      audioCtx.resume();
+      viewport.requestPointerLock();
+    }
+    document.addEventListener('pointerlockchange', () => {
+      if (document.pointerLockElement === viewport) {
+        lockPrompt.style.display = 'none';
+      } else if (!document.getElementById('victory-screen').style.display.includes('flex') && lives > 0) {
+        lockPrompt.style.display = 'flex';
+      }
+    });
+
+    // Key event listener registry
+    const keys = {};
+    window.addEventListener('mousemove', e => {
+      if (document.pointerLockElement === viewport) player.angle += e.movementX * player.ms;
+    });
+    window.addEventListener('keydown', e => {
+      keys[e.key.toLowerCase()] = true;
+      if (e.key.toLowerCase() === 'e') {
+        if (nearCP && !modalOpen) handleInteract();
+        else if (keysActive) handleKeyPickup();
+      }
+      if (e.key.toLowerCase() === 'v') {
+        isThirdPerson = !isThirdPerson;
+        crosshair.style.opacity = isThirdPerson ? '0' : '1';
+        playSound('tick');
+      }
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay').forEach(m => {
+          if (m.id !== 'modal-gameover') m.style.display = 'none';
+        });
+        modalOpen = false;
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+    // Procedural Graphics Offscreen Canvas Builders
+    const offscreen = {};
+    function buildOffscreenAsset(name, width, height, drawFn) {
+      const c = document.createElement('canvas');
+      c.width = width;
+      c.height = height;
+      drawFn(c.getContext('2d'), width, height);
+      offscreen[name] = c;
+    }
+    // Build vector textures
+    buildOffscreenAsset('tree', 128, 128, (ctx, w, h) => {
+      ctx.fillStyle = '#6e473b'; // trunk
+      ctx.fillRect(56, 70, 16, 58);
+      ctx.fillStyle = '#ff7a3d'; // layered thorny foliage
+      ctx.beginPath(); ctx.arc(64, 50, 40, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#d15e28';
+      ctx.beginPath(); ctx.arc(45, 40, 25, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(83, 40, 25, 0, Math.PI * 2); ctx.fill();
+    });
+    buildOffscreenAsset('chorten', 128, 128, (ctx, w, h) => {
+      ctx.fillStyle = '#eae6df'; // white base
+      ctx.beginPath();
+      ctx.moveTo(34, 110); ctx.lineTo(94, 110);
+      ctx.lineTo(84, 50); ctx.lineTo(44, 50); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#9e4233'; // red band
+      ctx.fillRect(43, 85, 42, 6);
+      ctx.fillStyle = '#c5a059'; // golden spire
+      ctx.fillRect(60, 10, 8, 40);
+      ctx.beginPath();
+      ctx.moveTo(54, 25); ctx.lineTo(74, 25); ctx.lineTo(64, 10); ctx.closePath(); ctx.fill();
+    });
+    buildOffscreenAsset('pole', 64, 256, (ctx, w, h) => {
+      ctx.fillStyle = '#5c524b';
+      ctx.fillRect(28, 40, 8, 216);
+      ctx.fillStyle = '#3a3430';
+      ctx.fillRect(10, 60, 44, 6); // crossbar
+      ctx.fillStyle = '#bbb';
+      ctx.beginPath(); ctx.arc(15, 57, 5, 0, Math.PI*2); ctx.fill(); // insulator
+      ctx.beginPath(); ctx.arc(49, 57, 5, 0, Math.PI*2); ctx.fill();
+    });
+    buildOffscreenAsset('bench', 128, 128, (ctx, w, h) => {
+      ctx.fillStyle = '#1c1815'; // iron legs
+      ctx.fillRect(30, 80, 8, 40);
+      ctx.fillRect(90, 80, 8, 40);
+      ctx.fillStyle = '#a86f4a'; // wooden planks
+      ctx.fillRect(20, 65, 88, 15);
+      ctx.fillRect(20, 45, 88, 15);
+    });
+    buildOffscreenAsset('garbage', 128, 128, (ctx, w, h) => {
+      ctx.fillStyle = '#4a4846'; // trash bags
+      ctx.beginPath(); ctx.arc(50, 95, 20, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#343332';
+      ctx.beginPath(); ctx.arc(75, 98, 16, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#9c9187'; // debris
+      ctx.fillRect(30, 105, 12, 8);
+      ctx.fillStyle = '#c55e5e';
+      ctx.beginPath(); ctx.arc(64, 110, 5, 0, Math.PI*2); ctx.fill();
+    });
+    buildOffscreenAsset('prayerwheel', 64, 128, (ctx, w, h) => {
+      ctx.fillStyle = '#6e473b'; // wooden post
+      ctx.fillRect(29, 60, 6, 68);
+      ctx.fillStyle = '#b08b46'; // copper wheel
+      ctx.fillRect(20, 20, 24, 40);
+      ctx.fillStyle = '#d4bc72';
+      ctx.fillRect(20, 35, 24, 10);
+      ctx.strokeStyle = '#6e473b'; ctx.lineWidth = 2;
+      ctx.strokeRect(20, 20, 24, 40);
+    });
+    buildOffscreenAsset('spoutwall', 256, 128, (ctx, w, h) => {
+      ctx.fillStyle = '#423d39'; // stone wall
+      ctx.fillRect(10, 30, 236, 98);
+      ctx.fillStyle = '#222'; // window trims
+      for (let i = 0; i < 4; i++) {
+        ctx.fillRect(30 + i * 55, 45, 30, 35);
+        ctx.fillStyle = '#a89482';
+        ctx.fillText("💧", 38 + i * 55, 68); // animal head water spouts
+        ctx.fillStyle = '#4da6ff';
+        ctx.fillRect(43 + i * 55, 75, 4, 40); // pouring water streams
+      }
+      ctx.fillStyle = '#1e334a'; // pool basin
+      ctx.fillRect(10, 110, 236, 18);
+    });
+    buildOffscreenAsset('key', 64, 64, (ctx, w, h) => {
+      ctx.strokeStyle = '#c5a059'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(32, 20, 10, 0, Math.PI*2); ctx.stroke(); // key handle
+      ctx.fillStyle = '#c5a059';
+      ctx.fillRect(29, 30, 6, 25); // shaft
+      ctx.fillRect(35, 45, 10, 6); // teeth
+      ctx.fillRect(35, 51, 8, 4);
+    });
+    buildOffscreenAsset('vehicle', 256, 128, (ctx, w, h) => {
+      // Local Nepalese bus obstacle
+      ctx.fillStyle = '#c54233'; // red bus body
+      ctx.fillRect(10, 30, 236, 68);
+      ctx.fillStyle = '#3a598c'; // blue stripe
+      ctx.fillRect(10, 60, 236, 15);
+      ctx.fillStyle = '#eae6df'; // white top
+      ctx.fillRect(10, 15, 236, 15);
+      // Windows
+      ctx.fillStyle = '#222';
+      for (let i = 0; i < 5; i++) {
+        ctx.fillRect(25 + i * 42, 35, 30, 20);
+      }
+      // Wheels
+      ctx.fillStyle = '#111';
+      ctx.beginPath(); ctx.arc(60, 105, 20, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(190, 105, 20, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle = '#666';
+      ctx.beginPath(); ctx.arc(60, 105, 8, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(190, 105, 8, 0, Math.PI*2); ctx.fill();
+    });
+    // Active Character models drawings
+    buildOffscreenAsset('char_1_back', 128, 128, (ctx, w, h) => {
+      // Sherpa Scout back
+      ctx.fillStyle = '#8B0000'; // red coat
+      ctx.fillRect(34, 40, 60, 88);
+      ctx.fillStyle = '#5c4033'; // brown backpack
+      ctx.fillRect(40, 48, 48, 60);
+      ctx.fillStyle = '#8b5a2b'; // staff
+      ctx.fillRect(25, 10, 6, 118);
+    });
+    buildOffscreenAsset('char_2_back', 128, 128, (ctx, w, h) => {
+      // Tharu Pathbreaker back
+      ctx.fillStyle = '#eaeaea'; // white clothes
+      ctx.fillRect(34, 40, 60, 88);
+      ctx.fillStyle = '#d2143a'; // red sash
+      ctx.fillRect(34, 75, 60, 10);
+      ctx.fillStyle = '#555'; // machete case
+      ctx.fillRect(44, 50, 12, 60);
+    });
+    buildOffscreenAsset('char_3_back', 128, 128, (ctx, w, h) => {
+      // Rana Archaeologist back
+      ctx.fillStyle = '#c3b091'; // khaki vest
+      ctx.fillRect(34, 40, 60, 88);
+      ctx.fillStyle = '#8b7355'; // explorer hat
+      ctx.beginPath(); ctx.arc(64, 30, 20, 0, Math.PI, true); ctx.fill();
+      ctx.fillRect(30, 30, 68, 6);
+    });
+    buildOffscreenAsset('char_4_back', 128, 128, (ctx, w, h) => {
+      // Gorkha Vanguard back
+      ctx.fillStyle = '#2e461a'; // military gear
+      ctx.fillRect(34, 40, 60, 88);
+      ctx.fillStyle = '#556b2f'; // harness
+      ctx.fillRect(44, 40, 10, 88);
+      ctx.fillRect(74, 40, 10, 88);
+      ctx.fillStyle = '#333'; // kukri sheath
+      ctx.fillRect(52, 90, 24, 10);
+    });
+    buildOffscreenAsset('char_5_back', 128, 128, (ctx, w, h) => {
+      // Yeti Mystic back
+      ctx.fillStyle = '#eae6df'; // white fur
+      ctx.fillRect(30, 35, 68, 93);
+      ctx.fillStyle = '#4682b4'; // blue mystic staff
+      ctx.fillRect(20, 10, 6, 118);
+    });
+    buildOffscreenAsset('char_6_back', 128, 128, (ctx, w, h) => {
+      // Newa Artisan back
+      ctx.fillStyle = '#1a1a1a'; // black robes
+      ctx.fillRect(34, 40, 60, 88);
+      ctx.fillStyle = '#d2143a'; // red border trim
+      ctx.fillRect(34, 40, 4, 88);
+      ctx.fillRect(90, 40, 4, 88);
+    });
+    buildOffscreenAsset('char_7_back', 128, 128, (ctx, w, h) => {
+      // Kumari Seer back
+      ctx.fillStyle = '#c41e3a'; // crimson dress
+      ctx.fillRect(30, 40, 68, 88);
+      ctx.fillStyle = '#ffd700'; // gold crown
+      ctx.fillRect(44, 15, 40, 10);
+    });
+    // Physics Movement Update
+    function updateMovementPhysics() {
+      if (modalOpen) return;
+      let dx = 0, dy = 0;
+      if (keys['w'] || keys['arrowup']) { dx += Math.cos(player.angle); dy += Math.sin(player.angle); }
+      if (keys['s'] || keys['arrowdown']) { dx -= Math.cos(player.angle); dy -= Math.sin(player.angle); }
+      if (keys['a'] || keys['arrowleft']) { dx += Math.sin(player.angle); dy -= Math.cos(player.angle); }
+      if (keys['d'] || keys['arrowright']) { dx -= Math.sin(player.angle); dy += Math.cos(player.angle); }
+      const moving = dx !== 0 || dy !== 0;
+      if (moving) {
+         walkTime += 0.08;
+        horizonBob = Math.sin(walkTime) * 3.0;
+        cameraBobTime += 0.16;
+        cameraBob = Math.sin(cameraBobTime) * 1.8;
+      } else {
+        horizonBob *= 0.85;
+        cameraBob *= 0.85;
+      }
+      if (!moving) return;
+      const nx = player.x + dx * player.speed;
+      const ny = player.y + dy * player.speed;
+      const gx = Math.floor(nx / TILE_SIZE);
+      const gy = Math.floor(ny / TILE_SIZE);
+      const cgx = Math.floor(player.x / TILE_SIZE);
+      const cgy = Math.floor(player.y / TILE_SIZE);
+      if (!isSolid(gx, gy)) { player.x = nx; player.y = ny; }
+      else {
+        if (!isSolid(gx, cgy)) player.x = nx;
+        if (!isSolid(cgx, gy)) player.y = ny;
+      }
+    }
+    // Vehicle Movement and Collision Logic
+    function updateVehiclesPhysics() {
+      if (modalOpen) return;
+      sprites.forEach(s => {
+        if (!s.isVehicle) return;
+        if (s.dx) {
+          s.x += s.dx;
+          if (s.x > s.maxX || s.x < s.minX) s.dx = -s.dx;
+        }
+        if (s.dy) {
+          s.y += s.dy;
+          if (s.y > s.maxY || s.y < s.minY) s.dy = -s.dy;
+        }
+        // Proximity detection
+        const dist = Math.hypot(player.x - s.x, player.y - s.y);
+        if (dist < 28) {
+          triggerDamage();
+        }
+      });
+    }
+    // Raycast Wall Renderer
+    function renderRaycast3D() {
+      const W = canvas3D.width = canvas3D.clientWidth;
+      const H = canvas3D.height = canvas3D.clientHeight;
+      
+      // Select camera coordinates based on toggle
+      let camX = player.x;
+      let camY = player.y;
+      if (isThirdPerson) {
+        let backAngle = player.angle + Math.PI;
+        for (let d = 0; d < 70; d += 2) {
+          let tx = player.x + Math.cos(backAngle) * d;
+          let ty = player.y + Math.sin(backAngle) * d;
+          if (isSolid(Math.floor(tx / TILE_SIZE), Math.floor(ty / TILE_SIZE))) {
+            break;
+          }
+          camX = tx;
+          camY = ty;
+        }
+      }
+      const horizon = Math.round(H / 2 + horizonBob);
+      // Sky/Ceiling rendering
+      const cg = ctx.createLinearGradient(0, 0, 0, horizon);
+      cg.addColorStop(0, THEME.sky); cg.addColorStop(1, THEME.ceil);
+      ctx.fillStyle = cg; ctx.fillRect(0, 0, W, horizon);
+       // Floor rendering with texture lines
+      const fg = ctx.createLinearGradient(0, horizon, 0, H);
+      fg.addColorStop(0, THEME.floor); fg.addColorStop(1, THEME.floorD);
+      ctx.fillStyle = fg; ctx.fillRect(0, horizon, W, H - horizon);
+      zBuffer = new Array(W);
+      const startAngle = player.angle - player.fov / 2;
+      for (let col = 0; col < W; col++) {
+        const rayAngle = startAngle + (col / W) * player.fov;
+        const cosA = Math.cos(rayAngle), sinA = Math.sin(rayAngle);
+        let dist = 0, wallType = 0, hit = false;
+        while (!hit && dist < 1400) {
+          dist += 2;
+          const cx = Math.floor((camX + cosA * dist) / TILE_SIZE);
+          const cy = Math.floor((camY + sinA * dist) / TILE_SIZE);
+          if (cx < 0 || cx >= MAP_SIZE || cy < 0 || cy >= MAP_SIZE) { hit = true; dist = 1400; }
+          else if (MAP_GRID[cy][cx] > 0) { hit = true; wallType = MAP_GRID[cy][cx]; }
+        }
+        const corrected = dist * Math.cos(rayAngle - player.angle);
+        zBuffer[col] = corrected;
+        
+        const wH = Math.min(H * 2, (TILE_SIZE * H) / (corrected + 0.001));
+        const factor = 1 - Math.abs(col - W/2) / (W/2);
+        const torch = Math.max(0, (THEME.torch - corrected) / THEME.torch) * (0.28 + factor * 0.72);
+        const brt = Math.min(1, 0.16 + torch * 0.9);
+        const c = THEME.walls[wallType] || [100, 80, 60];
+        // Slice-based vertical striped decoration for monastery structures (wall type 2/4)
+        let hitX = camX + cosA * dist;
+        let hitY = camY + sinA * dist;
+        let offset = 0;
+        if (Math.abs(hitX - Math.round(hitX/TILE_SIZE)*TILE_SIZE) < Math.abs(hitY - Math.round(hitY/TILE_SIZE)*TILE_SIZE)) {
+          offset = hitY % TILE_SIZE;
+        } else {
+          offset = hitX % TILE_SIZE;
+        }
+        let sliceColor = `rgb(${Math.floor(c[0] * brt)}, ${Math.floor(c[1] * brt)}, ${Math.floor(c[2] * brt)})`;
+        if (wallType === 2 || wallType === 4) {
+          // Monastery strips: Red-Ochre Clay (#9E4233), Grey-Blue Clay (#707A8A), and Chalk White (#EAE6DF)
+          let band = Math.floor(offset / (TILE_SIZE / 3));
+          let rgbColor = band === 0 ? [158, 66, 51] : band === 1 ? [112, 122, 138] : [234, 230, 223];
+          sliceColor = `rgb(${Math.floor(rgbColor[0] * brt)}, ${Math.floor(rgbColor[1] * brt)}, ${Math.floor(rgbColor[2] * brt)})`;
+        } else if (wallType === 3) {
+          // Village blocks: White cube structures with flat roofs featuring brown stacked logs borders
+          let topOffset = (wH * 0.12);
+          let yTop = horizon - wH/2;
+          ctx.fillStyle = `rgb(${Math.floor(234 * brt)}, ${Math.floor(230 * brt)}, ${Math.floor(223 * brt)})`;
+          ctx.fillRect(col, yTop, 1, wH);
+          // stacked logs border at top of wall
+          ctx.fillStyle = `rgb(${Math.floor(110 * brt)}, ${Math.floor(71 * brt)}, ${Math.floor(59 * brt)})`;
+          ctx.fillRect(col, yTop, 1, topOffset);
+          continue;
+        }
+        ctx.fillStyle = sliceColor;
+        ctx.fillRect(col, horizon - wH / 2, 1, wH);
+      }
+    }
+    // Draw check point sprites and decoration items
+    function renderSprites3D() {
+      const W = canvas3D.width, H = canvas3D.height;
+      const horizon = Math.round(H / 2 + horizonBob);
+       
+      let camX = player.x;
+      let camY = player.y;
+      if (isThirdPerson) {
+        let backAngle = player.angle + Math.PI;
+        for (let d = 0; d < 70; d += 2) {
+          let tx = player.x + Math.cos(backAngle) * d;
+          let ty = player.y + Math.sin(backAngle) * d;
+          if (isSolid(Math.floor(tx / TILE_SIZE), Math.floor(ty / TILE_SIZE))) {
+            break;
+          }
+          camX = tx;
+          camY = ty;
+        }
+      }
+      // 1. Gather all sprites (checkpoints + structures + vehicles)
+      const list = [];
+      
+      // Active checkpoints
+      CHECKPOINTS.forEach(cp => {
+        if (!cp.solved || cp.final) {
+          list.push({
+            type: cp.final ? 'final' : 'checkpoint',
+            x: cp.x, y: cp.y, scale: 1.0,
+            label: cp.label, hex: cp.hex, rgb: cp.rgb
+          });
+        }
+      });
+      // General world objects
+      sprites.forEach(s => {
+        if (s.hidden) return; // ignore hidden items
+        list.push(s);
+      });
+      // Third person character sprite
+      if (isThirdPerson) {
+        list.push({
+          type: 'player',
+          x: player.x, y: player.y, scale: 0.8
+        });
+      }
+      // Sort by distance from camera
+      const sorted = list
+        .map(s => {
+          return { s, dist: Math.hypot(s.x - camX, s.y - camY) };
+        })
+        .sort((a, b) => b.dist - a.dist);
+         // Render projected sprite slices
+      for (const { s, dist } of sorted) {
+        if (dist < 15) continue;
+        let sa = Math.atan2(s.y - camY, s.x - camX) - player.angle;
+        while (sa > Math.PI) sa -= 2 * Math.PI;
+        while (sa < -Math.PI) sa += 2 * Math.PI;
+        if (Math.abs(sa) > player.fov * 0.72) continue;
+        const cd = dist * Math.cos(sa);
+        const sx = (W / 2) + (W / 2) * Math.tan(sa) / Math.tan(player.fov / 2);
+                if (sx < -200 || sx > W + 200) continue;
+        const sH = Math.min(H * 2.5, (TILE_SIZE * H * 1.35 * s.scale) / (cd + 0.001));
+        const sW = sH;
+        const brt = Math.max(0.04, Math.min(1, 1 - cd / 1200));
+
+        let assetName = null;
+        if (s.type === 'checkpoint' || s.type === 'final') {
+          // Render glowing checkpoint columns
+          const [r, g, b] = s.rgb;
+          const beamW = Math.max(3, sH * 0.15);
+          const yTop = horizon - sH / 2;
+          
+          const baseGlow = ctx.createRadialGradient(sx, horizon, 0, sx, horizon, sH * 0.55);
+          baseGlow.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${(brt * 0.25).toFixed(3)})`);
+          baseGlow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+          ctx.fillStyle = baseGlow; ctx.fillRect(sx - sH * 0.55, horizon - sH * 0.55, sH * 1.1, sH * 1.1);
+          const beamGlow = ctx.createLinearGradient(sx - beamW, 0, sx + beamW, 0);
+          beamGlow.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
+          beamGlow.addColorStop(0.3, `rgba(${r}, ${g}, ${b}, ${brt.toFixed(3)})`);
+          beamGlow.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, ${brt.toFixed(3)})`);
+          beamGlow.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+          ctx.fillStyle = beamGlow; ctx.fillRect(sx - beamW, yTop, beamW * 2, sH);
+           if (cd < 320 && brt > 0.18) {
+            ctx.save(); ctx.globalAlpha = Math.min(1, brt * 1.4);
+            ctx.fillStyle = '#fff'; ctx.font = `bold ${Math.max(9, Math.floor(13 * brt))}px Outfit, sans-serif`;
+            ctx.textAlign = 'center'; ctx.fillText(s.label, sx, yTop - 8);
+            ctx.restore();
+          }
+          continue;
+        } else if (s.type === 'player') {
+          assetName = `${selectedChar}_back`;
+        } else if (s.type.startsWith('vehicle')) {
+          assetName = 'vehicle';
+        } else if (s.type.startsWith('key')) {
+          assetName = 'key';
+        } else {
+          assetName = s.type;
+        }
+         const img = offscreen[assetName];
+        if (!img) continue;
+        // Draw sprite slice-by-slice for pixel-perfect wall occlusion
+        const halfW = sW / 2;
+        const startX = Math.round(sx - halfW);
+        const endX = Math.round(sx + halfW);
+        const targetY = horizon - sH / 2;
+        for (let x = startX; x < endX; x++) {
+          if (x < 0 || x >= W) continue;
+          if (zBuffer[x] !== undefined && cd > zBuffer[x] + 2) continue; // Occluded
+          // Get image source X coordinate slice
+          const srcX = Math.floor(((x - startX) / sW) * img.width);
+          ctx.drawImage(img, srcX, 0, 1, img.height, x, targetY, 1, sH);
+        }
+      }
+    }
+    
+    // Draw Minimap HUD
+    function renderMinimapHUD() {
+      const mc = document.getElementById('minimap-canvas');
+      const mm = mc.getContext('2d');
+      if (mc.width !== 140) { mc.width = 140; mc.height = 140; }
+      const cells = 7, scale = 70 / (cells * TILE_SIZE);
+      mm.clearRect(0, 0, 140, 140);
+      mm.fillStyle = '#060606'; mm.fillRect(0, 0, 140, 140);
+      mm.save(); mm.translate(70, 70);
+      // Draw surrounding map blocks
+      for (let gy = 0; gy < MAP_SIZE; gy++) {
+        for (let gx = 0; gx < MAP_SIZE; gx++) {
+          const rx = (gx * TILE_SIZE - player.x) * scale;
+          const ry = (gy * TILE_SIZE - player.y) * scale;
+          const ts = TILE_SIZE * scale + 0.5;
+          const cell = MAP_GRID[gy][gx];
+          if (cell > 0) {
+            mm.fillStyle = cell === 1 ? '#3a241b' : cell === 2 ? '#9e4233' : '#b0a8a0';
+            mm.fillRect(rx, ry, ts, ts);
+            } else {
+            mm.fillStyle = '#111'; mm.fillRect(rx, ry, ts, ts);
+          }
+        }
+      }
+      // Draw checkpoints
+      for (const cp of CHECKPOINTS) {
+        const cx = (cp.x - player.x) * scale;
+        const cy = (cp.y - player.y) * scale;
+        const col = cp.solved ? '#4dfa62' : cp.hex;
+        mm.fillStyle = col; mm.beginPath(); mm.arc(cx, cy, 4, 0, Math.PI * 2); mm.fill();
+      }
+      // Draw player direction pointer
+      mm.fillStyle = '#fff'; mm.beginPath(); mm.arc(0, 0, 3.5, 0, Math.PI * 2); mm.fill();
+     mm.strokeStyle = '#fff'; mm.lineWidth = 2; mm.beginPath();
+      mm.moveTo(0, 0); mm.lineTo(Math.cos(player.angle) * 12, Math.sin(player.angle) * 12); mm.stroke();
+      mm.restore();
+    }
+    // Check distance proximity for E interact prompt
+    function checkProximityInteracts() {
+      let closestCp = null, minDistance = Infinity;
+      for (const cp of CHECKPOINTS) {
+        const distance = Math.hypot(cp.x - player.x, cp.y - player.y);
+        if (distance < INTERACT_R && distance < minDistance) { closestCp = cp; minDistance = distance; }
+      }
+      nearCP = closestCp;
+      const promptEl = document.getElementById('interact-prompt');
+      const promptText = document.getElementById('interact-text');
+      
+      if (closestCp) {
+        promptText.innerText = closestCp.final ? (closestCp.solved ? "Sacred Chest (Complete)" : "Inspect Sacred Chest Seal")
+                             : (closestCp.solved ? `${closestCp.label} (Cleared)` : `Inspect ${closestCp.label}`);
+        promptEl.style.display = (closestCp.solved && !closestCp.final) ? 'none' : 'block';
+        } else if (keysActive) {
+        // Check keys pickup distance
+        let nearKey = null;
+        sprites.forEach(s => {
+          if (!s.type.startsWith('key') || s.hidden || s.collected) return;
+          const d = Math.hypot(s.x - player.x, s.y - player.y);
+          if (d < 45) nearKey = s;
+        });
+        if (nearKey) {
+          promptText.innerText = "Collect Golden Key";
+          promptEl.style.display = 'block';
+        } else {
+          promptEl.style.display = 'none';
+        }
+      } else {
+        promptEl.style.display = 'none';
+      }
+    }
+     // Quest handling trigger
+    function handleInteract() {
+      if (!nearCP || (nearCP.solved && !nearCP.final)) return;
+      playSound('interact');
+      if (nearCP.final) {
+        if (inventory.length < 3) {
+          document.getElementById('warning-pieces-collected').innerText = `${inventory.length}/3`;
+          openOverlay('modal-warning');
+        } else { openCombinationModal(); }
+      } else {
+        if (nearCP.id === 1) {
+          initJigsawPuzzle();
+          openOverlay('modal-checkpoint-1');
+        } else if (nearCP.id === 2) {
+          initMustangQuiz();
+          openOverlay('modal-checkpoint-2');
+        } else if (nearCP.id === 3) {
+          // Activate keys quest
+          keysActive = true;
+          sprites.forEach(s => {
+            if (s.type.startsWith('key')) s.hidden = false;
+          });
+          openOverlay('modal-checkpoint-3');
+        }
+      }
+    }
+    // Modal windows management
+    function openOverlay(id) {
+       document.getElementById(id).style.display = 'flex';
+      modalOpen = true;
+      if (document.pointerLockElement) document.exitPointerLock();
+      keys.w = keys.a = keys.s = keys.d = keys.arrowup = keys.arrowdown = keys.arrowleft = keys.arrowright = false;
+    }
+    function closeOverlay(id) {
+      document.getElementById(id).style.display = 'none';
+      playSound('tick');
+      modalOpen = (document.querySelectorAll('.modal-overlay[style*="flex"]').length > 0);
+    }
+    // Checkpoint 1: Muktinath Pagoda 4x4 Jigsaw puzzle rules
+    let jigsawTimerVal = 30;
+    let jigsawTimerInterval = null;
+    let jigsawTiles = [];
+    let jigsawSelectedIdx = null;
+    const jigsawW = 240, jigsawH = 240, puzzleDim = 4, pieceSize = 60;
+    const jigsawCanvas = document.getElementById('jigsaw-canvas');
+    const jigsawCtx = jigsawCanvas.getContext('2d');
+    // Build the puzzle reference image on offscreen canvas
+    const offscreenImg = document.createElement('canvas');
+    offscreenImg.width = 240; offscreenImg.height = 240;
+    const oCtx = offscreenImg.getContext('2d');
+    // Draw Pagoda temple art
+    oCtx.fillStyle = '#1c0f05'; oCtx.fillRect(0,0,240,240);
+    oCtx.fillStyle = '#ff7a3d'; oCtx.fillRect(20, 180, 200, 60); // base rocks
+    oCtx.fillStyle = '#8b2b2b'; oCtx.fillRect(60, 100, 120, 80); // walls
+    oCtx.fillStyle = '#c5a059'; oCtx.fillRect(110, 120, 20, 60); // temple door
+    // Roofs
+    oCtx.fillStyle = '#c5a059';
+    oCtx.beginPath(); oCtx.moveTo(40,100); oCtx.lineTo(200,100); oCtx.lineTo(120,60); oCtx.closePath(); oCtx.fill();
+    oCtx.fillStyle = '#ffd700'; // pinnacle
+    oCtx.fillRect(115, 20, 10, 40);
+    oCtx.beginPath(); oCtx.moveTo(105, 30); oCtx.lineTo(135,30); oCtx.lineTo(120,10); oCtx.closePath(); oCtx.fill();
+    // spouts row
+    oCtx.fillStyle = '#b08b46';
+    for(let i=0; i<8; i++){
+      oCtx.fillRect(70 + i*13, 160, 6, 8);
+    }
+    function initJigsawPuzzle() {
+      jigsawTimerVal = 30;
+      document.getElementById('jigsaw-timer-display').innerText = `${jigsawTimerVal}s`;
+      document.getElementById('jigsaw-status').innerText = "";
+      jigsawSelectedIdx = null;
+      // Build coordinates of ordered tiles
+      jigsawTiles = [];
+      for (let i = 0; i < 16; i++) jigsawTiles.push(i);
+      
+      // Shuffle them randomly
+      for (let i = jigsawTiles.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = jigsawTiles[i]; jigsawTiles[i] = jigsawTiles[j]; jigsawTiles[j] = temp;
+      }
+       
+      renderJigsawCanvas();
+      // Launch timer interval
+      if (jigsawTimerInterval) clearInterval(jigsawTimerInterval);
+      jigsawTimerInterval = setInterval(() => {
+        jigsawTimerVal--;
+        document.getElementById('jigsaw-timer-display').innerText = `${jigsawTimerVal}s`;
+        if (jigsawTimerVal <= 0) {
+          clearInterval(jigsawTimerInterval);
+          handleJigsawFailure();
+        }
+      }, 1000);
+    }
+    function renderJigsawCanvas() {
+      jigsawCtx.clearRect(0,0,jigsawW,jigsawH);
+      for (let i = 0; i < 16; i++) {
+        const pieceIdx = jigsawTiles[i];
+        const row = Math.floor(i / 4);
+        const col = i % 4;
+        
+        const srcX = (pieceIdx % 4) * pieceSize;
+        const srcY = Math.floor(pieceIdx / 4) * pieceSize;
+        const dx = col * pieceSize;
+        const dy = row * pieceSize;
+        // Draw piece onto puzzle canvas
+        jigsawCtx.drawImage(offscreenImg, srcX, srcY, pieceSize, pieceSize, dx, dy, pieceSize, pieceSize);
+        
+        // draw grid lines
+        jigsawCtx.strokeStyle = 'rgba(197, 160, 89, 0.4)';
+        jigsawCtx.strokeRect(dx, dy, pieceSize, pieceSize);
+        // Highlight selected
+        if (jigsawSelectedIdx === i) {
+          jigsawCtx.fillStyle = 'rgba(255, 255, 255, 0.28)';
+          jigsawCtx.fillRect(dx, dy, pieceSize, pieceSize);
+        }
+      }
+      }
+    jigsawCanvas.onclick = function(e) {
+      const rect = jigsawCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const col = Math.floor(mx / pieceSize);
+      const row = Math.floor(my / pieceSize);
+      const clickedIdx = row * 4 + col;
+      if (jigsawSelectedIdx === null) {
+        jigsawSelectedIdx = clickedIdx;
+        playSound('tick');
+      } else {
+        // Swap pieces
+        const temp = jigsawTiles[jigsawSelectedIdx];
+        jigsawTiles[jigsawSelectedIdx] = jigsawTiles[clickedIdx];
+        jigsawTiles[clickedIdx] = temp;
+        jigsawSelectedIdx = null;
+        playSound('tick');
+        
+        renderJigsawCanvas();
+        checkJigsawSolved();
+      }
+      renderSlidingGrid();
+    };
+    function checkJigsawSolved() {
+      // Check if all are ordered
+      let solved = true;
+      for (let i = 0; i < 16; i++) {
+        if (jigsawTiles[i] !== i) { solved = false; break; }
+      }
+      if (solved) {
+        clearInterval(jigsawTimerInterval);
+        document.getElementById('jigsaw-status').style.color = '#4dfa62';
+        document.getElementById('jigsaw-status').innerText = "✓ Seal Unlocked!";
+        playSound('success');
+        setTimeout(() => {
+          closeOverlay('modal-checkpoint-1');
+          solveCP(1);
+          giveFragment('frag_a');
+        }, 1500);
+      }
+    }
+
+    function handleJigsawFailure() {
+      triggerDamage();
+      if (lives > 0) {
+        document.getElementById('jigsaw-status').style.color = '#ff4d4d';
+        document.getElementById('jigsaw-status').innerText = "Failed! Lost 1 life. Reshuffling +30s added.";
+        setTimeout(() => {
+          initJigsawPuzzle();
+        }, 1800);
+      } else {
+        closeOverlay('modal-checkpoint-1');
+      }
+    }
+
+    // Checkpoint 2: Mustang Story Quiz
+    let quizQuestionIndex = 0;
+    const quizQuestions = [
+      {
+        q: "What was the name of the walled capital of the ancient Kingdom of Lo in Mustang?",
+        choices: ["Jomsom", "Lo Manthang", "Marpha", "Muktinath"],
+        a: "B"
+      },
+      {
+        q: "What is the name of the sacred river gorge flowing through Mustang, famous for Shaligram fossils?",
+        choices: ["Kali Gandaki", "Koshi", "Karnali", "Bagmati"],
+        a: "A"
+      },
+      {
+        q: "The ancient sky caves of Mustang were primarily carved out and used for:",
+        choices: ["Storing crop harvests", "Burials, meditation, and hiding during war", "Prison cells", "Animal shelters"],
+        a: "B"
+      }
+    ];
+    function initMustangQuiz() {
+      quizQuestionIndex = 0;
+      loadQuizQuestion();
+    }
+
+
+    function loadQuizQuestion() {
+      const qData = quizQuestions[quizQuestionIndex];
+      document.getElementById('quiz-question-title').innerText = `Question ${quizQuestionIndex + 1}/3:\n${qData.q}`;
+      const container = document.getElementById('quiz-choices-container');
+      container.innerHTML = "";
+      document.getElementById('quiz-error').innerText = "";
+      qData.choices.forEach((c, idx) => {
+        const letter = String.fromCharCode(65 + idx); // A, B, C, D
+        const div = document.createElement('div');
+        div.className = "choice-item";
+        div.innerText = `${letter}) ${c}`;
+        div.onclick = () => submitQuizAnswer(letter);
+        container.appendChild(div);
+      });
+    }
+    function submitQuizAnswer(choice) {
+      const qData = quizQuestions[quizQuestionIndex];
+      const err = document.getElementById('quiz-error');
+      
+      if (choice === qData.a) {
+        err.style.color = '#4dfa62';
+        err.innerText = "Correct!";
+        playSound('success');
+
+        quizQuestionIndex++;
+        if (quizQuestionIndex >= quizQuestions.length) {
+          setTimeout(() => {
+            closeOverlay('modal-checkpoint-2');
+            solveCP(2);
+            giveFragment('frag_b');
+          }, 1200);
+        } else {
+          setTimeout(loadQuizQuestion, 1200);
+        }
+      } else {
+        err.style.color = '#ff4d4d';
+        err.innerText = "Incorrect answer! Try again.";
+        playSound('failure');
+      }
+    }
+
+    // Checkpoint 3: Hidden keys picking logic
+    function handleKeyPickup() {
+      let keyCollectedIdx = -1;
+      sprites.forEach((s, idx) => {
+        if (!s.type.startsWith('key') || s.hidden || s.collected) return;
+        const d = Math.hypot(s.x - player.x, s.y - player.y);
+        if (d < 45) keyCollectedIdx = idx;
+      });
+      if (keyCollectedIdx !== -1) {
+        const s = sprites[keyCollectedIdx];
+        s.collected = true;
+        s.hidden = true;
+        keysCollected++;
+        playSound('success');
+        showNotif(`Collected Golden Key (${keysCollected}/3)`);
+        if (keysCollected >= 3) {
+          keysActive = false;
+          solveCP(3);
+          giveFragment('frag_c');
+        }
+      }
+    }
+
+    function solveCP(cpId) {
+      const cp = CHECKPOINTS.find(c => c.id === cpId);
+      if (cp) cp.solved = true;
+      const obj = document.getElementById(cp?.qid || '');
+      if (obj) obj.classList.add('completed');
+    }
+    function giveFragment(fragId) {
+      const item = FRAGS.find(f => f.id === fragId);
+      if (!item || inventory.find(p => p.id === fragId)) return;
+      inventory.push(item);
+      document.getElementById('puzzle-pieces-count').innerText = `${inventory.length}/3`;
+    }
+    // Combination Lock
+    function openCombinationModal() { comboSlots = [null, null, null]; renderCombination(); openOverlay('modal-combination'); }
+    function renderCombination() {
+      for (let i = 0; i < 3; i++) {
+        const slot = document.getElementById(`slot-${i}`); slot.innerHTML = '';
+        if (comboSlots[i]) {
+          const item = comboSlots[i], token = document.createElement('div');
+          token.className = 'fragment-token';
+          token.innerHTML = `<div style="font-size:1.4rem">${item.icon}</div><div style="margin-top:2px">${item.name.split(" ")[1]}</div><div style="opacity:0.6; font-size:0.5rem">${item.sub.split(" ")[0]}</div>`;
+          token.onclick = () => removeFragment(i); slot.appendChild(token);
+        }
+      }
+      const pool = document.getElementById('fragments-pool-container'); pool.innerHTML = '';
+      inventory.forEach(item => {
+        if (comboSlots.includes(item)) return;
+        const token = document.createElement('div');
+        token.className = 'fragment-token';
+        token.innerHTML = `<div style="font-size:1.4rem">${item.icon}</div><div style="margin-top:2px">${item.name.split(" ")[1]}</div><div style="opacity:0.6; font-size:0.5rem">${item.sub.split(" ")[0]}</div>`;
+        token.onclick = () => placeFragment(item); pool.appendChild(token);
+      });
+      document.getElementById('combo-error').innerText = '';
+    }
+    function placeFragment(item) {
+      const idx = comboSlots.indexOf(null);
+      if (idx === -1) {
+        const err = document.getElementById('combo-error');
+        err.style.color = '#ff4d4d'; err.innerText = 'Slots are filled! Remove a token first.';
+        playSound('failure'); return;
+      }
+      comboSlots[idx] = item; playSound('tick'); renderCombination();
+    }
+    function removeFragment(index) { comboSlots[index] = null; playSound('tick'); renderCombination(); }
+    function checkCombinationSubmit() {
+      const err = document.getElementById('combo-error');
+      if (comboSlots.includes(null)) { err.style.color = '#ff4d4d'; err.innerText = 'All three slots must be loaded.'; playSound('failure'); return; }
+      
+      // Altitude order validation: Plains (Lowest) -> Valley (Medium) -> Caves (Highest)
+      // Array values: frag_b, frag_c, frag_a
+      if (comboSlots[0].id === 'frag_b' && comboSlots[1].id === 'frag_c' && comboSlots[2].id === 'frag_a') {
+        err.style.color = '#4dfa62'; err.innerText = '✓ SEAL CRACKED!'; playSound('success');
+        setTimeout(() => { closeOverlay('modal-combination'); solveCP(4); triggerVictory(); }, 1500);
+      } else {
+        err.style.color = '#ff4d4d'; err.innerText = '✗ Wrong order! Rearrange altitude parameters.'; playSound('failure');
+        comboSlots = [null, null, null]; renderCombination();
+      }
+    }
+
+    // Victory Screen
+    function triggerVictory() {
+      playSound('victory');
+      document.getElementById('quest-final').classList.add('completed');
+      document.getElementById('victory-screen').style.display = 'flex';
+      if (document.pointerLockElement) document.exitPointerLock();
+      lockPrompt.style.display = 'none';
+    }
+    function returnToDashboard() {
+      const coins = 250;
+      window.location.href = `dashboard.html?earnedGold=${coins}&victory=true`;
+    }
+    // Loop
+    // HUD explorer notification toast
+    function showNotif(text) {
+      const toast = document.createElement('div');
+      toast.style.cssText = 'position:fixed; top:20px; right:20px; background:rgba(197, 160, 89, 0.95); color:#000; padding:12px 25px; border-radius:5px; font-weight:bold; font-size:0.9rem; box-shadow:0 10px 25px rgba(0,0,0,0.5); z-index:10000;';
+      toast.innerText = text;
+      document.body.appendChild(toast);
+      setTimeout(() => toast.remove(), 2500);
+    }
+    // Game loops
+    function gameLoop() {
+      updateMovementPhysics();
+      updateVehiclesPhysics();
+      renderRaycast3D();
+      renderSprites3D();
+      if (++mmTick % 3 === 0) renderMinimapHUD();
+      checkProximityInteracts();
+      requestAnimationFrame(gameLoop);
+    }
+
+
+    // Run
+    renderMinimapHUD();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>

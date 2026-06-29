@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Treasure Trails - Mustang Pass</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #C5A059;
+      --gold-light: #e5c382;
+      --bg-overlay: rgba(8, 8, 12, 0.97);
+      --border-gold: 1px solid #C5A059;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body, html {
+      width: 100%; height: 100%; overflow: hidden;
+      background-color: #030305; font-family: 'Outfit', sans-serif; color: #e0e0e0; user-select: none;
+    }
+    #viewport-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; cursor: crosshair; }
+    #render-canvas { width: 100%; height: 100%; display: block; }
+    
+    .click-to-play {
+      position: absolute; inset: 0; background: rgba(3, 3, 5, 0.95);
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      z-index: 99; text-align: center; backdrop-filter: blur(15px);
+    }
+    .play-icon { font-size: 4.5rem; margin-bottom: 12px; filter: drop-shadow(0 0 20px rgba(197, 160, 89, 0.5)); }
+    .play-title { font-family: 'Cinzel', serif; font-size: 2.2rem; color: var(--gold); font-weight: 900; text-transform: uppercase; letter-spacing: 4px; margin-bottom: 8px; }
+    .play-subtitle { color: #888; font-size: 0.95rem; max-width: 380px; margin-bottom: 30px; line-height: 1.6; }
+    .play-btn {
+      background: linear-gradient(135deg, var(--gold), #9e7d3b); color: #000; border: none; padding: 14px 45px;
+      font-size: 1rem; font-weight: 900; cursor: pointer; border-radius: 4px; text-transform: uppercase; letter-spacing: 2px;
+      box-shadow: 0 10px 30px rgba(197, 160, 89, 0.4); transition: all 0.3s ease; font-family: 'Outfit', sans-serif;
+    }
+    .play-btn:hover { box-shadow: 0 15px 40px rgba(197, 160, 89, 0.65); transform: translateY(-2px); }
+    
+    .crosshair { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; transform: translate(-50%, -50%); pointer-events: none; z-index: 10; transition: opacity 0.2s; }
+    .crosshair::before, .crosshair::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.45); }
+    .crosshair::before { top: 4px; left: -10px; width: 30px; height: 2px; }
+    .crosshair::after { top: -10px; left: 4px; width: 2px; height: 30px; }
+    
+    .hud-element { position: absolute; z-index: 10; pointer-events: auto; }
+    .top-hud { position: absolute; top: 20px; left: 20px; right: 20px; display: flex; justify-content: space-between; pointer-events: none; z-index: 10; }
+    .hud-card {
+      background: rgba(10, 10, 15, 0.88); border: 1px solid rgba(197, 160, 89, 0.25); padding: 10px 20px; border-radius: 6px;
+      backdrop-filter: blur(10px); box-shadow: 0 4px 25px rgba(0,0,0,0.75); display: flex; align-items: center; gap: 15px; pointer-events: auto;
+    }
+    .hud-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #888; }
+    .hud-value { font-size: 1.1rem; font-weight: 800; color: var(--gold); }
+    .quest-log { max-width: 320px; flex-direction: column; align-items: flex-start; gap: 8px; }
+    .quest-item { font-size: 0.8rem; display: flex; align-items: center; gap: 8px; color: #444; }
+    .quest-item.unlocked { color: #aaa; }
+    .quest-item.completed { color: #4dfa62; text-decoration: line-through; opacity: 0.65; }
+    .quest-item::before { content: '■'; color: #333; font-size: 0.7rem; }
+    .quest-item.unlocked::before { content: '■'; color: var(--gold); }
+    .quest-item.completed::before { content: '✓'; color: #4dfa62; }
+    
+    .minimap-container { top: 20px; right: 20px; width: 140px; height: 140px; border-radius: 50%; border: 2px solid var(--gold); overflow: hidden; background: rgba(5, 5, 8, 0.95); box-shadow: 0 10px 25px rgba(0,0,0,0.8); }
+    #minimap-canvas { width: 100%; height: 100%; }
+    
+    .interact-prompt {
+      position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%);
+      background: rgba(10, 10, 15, 0.95); border: 1px solid var(--gold); padding: 12px 25px; border-radius: 6px;
+      font-size: 1rem; font-weight: 800; color: #fff; display: none; animation: pulseAlert 1.5s infinite; z-index: 10;
+      box-shadow: 0 8px 30px rgba(197, 160, 89, 0.35); white-space: nowrap;
+    }
+    @keyframes pulseAlert {
+      0% { box-shadow: 0 0 10px rgba(197, 160, 89, 0.2); border-color: rgba(197, 160, 89, 0.3); }
+      50% { box-shadow: 0 0 25px rgba(197, 160, 89, 0.6); border-color: var(--gold); }
+      100% { box-shadow: 0 0 10px rgba(197, 160, 89, 0.2); border-color: rgba(197, 160, 89, 0.3); }
+    }
+    .key-badge { background: var(--gold); color: #000; padding: 2px 8px; border-radius: 4px; font-weight: 900; margin-right: 8px; }
+    .controls-guide { bottom: 20px; left: 20px; background: rgba(5, 5, 8, 0.85); padding: 8px 15px; border-radius: 4px; font-size: 0.75rem; color: #888; display: flex; gap: 15px; border: 1px solid rgba(255,255,255,0.03); }
+    .audio-toggle { bottom: 20px; right: 20px; background: rgba(10, 10, 15, 0.9); border: 1px solid rgba(255, 255, 255, 0.08); width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; cursor: pointer; color: var(--gold); transition: all 0.2s ease; }
+    .audio-toggle:hover { border-color: var(--gold); transform: scale(1.05); }
+    
+    .modal-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(3, 3, 5, 0.9); backdrop-filter: blur(12px); z-index: 100; display: none; justify-content: center; align-items: center; }
+    .modal-container { background: var(--bg-overlay); border: var(--border-gold); border-radius: 8px; width: 480px; max-width: 90%; padding: 30px; box-shadow: 0 25px 60px rgba(0,0,0,0.95); display: flex; flex-direction: column; gap: 20px; position: relative; }
+    .modal-header { border-bottom: 1px solid rgba(197, 160, 89, 0.15); padding-bottom: 10px; text-align: center; }
+    .modal-title { font-family: 'Cinzel', serif; color: var(--gold); font-size: 1.4rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; }
+    .modal-body { font-size: 0.9rem; line-height: 1.6; color: #ccc; }
+    .close-modal-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; color: #666; font-size: 1.3rem; cursor: pointer; transition: color 0.2s; }
+    .close-modal-btn:hover { color: #fff; }
+    
+    .choices-list { display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+    .choice-item { background: #0f0f14; border: 1px solid #222; padding: 12px 15px; border-radius: 5px; cursor: pointer; font-weight: 600; transition: all 0.2s ease; text-align: left; }
+    .choice-item:hover { border-color: var(--gold); background: #1c1810; transform: translateX(3px); }
+    .choice-item.disabled { pointer-events: none; opacity: 0.7; }
+    
+    .jigsaw-container { display: flex; flex-direction: column; align-items: center; gap: 15px; margin: 10px 0; }
+    #jigsaw-canvas { border: 2px solid var(--gold); cursor: pointer; background: #08080c; }
+    .jigsaw-timer { font-size: 1.2rem; font-weight: 800; color: #ff4d4d; text-align: center; letter-spacing: 1px; }
+    
+    .combination-slots { display: flex; justify-content: center; gap: 15px; margin: 20px 0; height: 100px; }
+    .combo-slot { width: 80px; height: 80px; border: 2px dashed rgba(197, 160, 89, 0.25); border-radius: 8px; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.5); position: relative; cursor: pointer; }
+    .combo-slot:hover { border-color: rgba(197, 160, 89, 0.5); }
+    .fragment-token { width: 70px; height: 70px; background: linear-gradient(135deg, #1c1812, #0d0b07); border: 2px solid var(--gold); border-radius: 6px; color: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 0.65rem; font-weight: bold; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.5); transition: all 0.2s ease; text-align: center; padding: 4px; }
+    .fragment-token:hover { transform: scale(1.05); border-color: #fff; }
+    .fragments-pool { display: flex; justify-content: center; gap: 20px; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 15px; min-height: 80px; }
+    
+    .error-flash { color: #ff4d4d; font-weight: bold; text-align: center; margin-top: 10px; font-size: 0.85rem; min-height: 25px; }
+    .modal-action-btn { width: 100%; background: var(--gold); color: #000; border: none; padding: 12px; font-weight: bold; font-size: 0.95rem; border-radius: 4px; cursor: pointer; text-transform: uppercase; letter-spacing: 1px; transition: background-color 0.2s; font-family: 'Outfit', sans-serif; }
+    .modal-action-btn:hover { background-color: var(--gold-light); }
+    
+    .victory-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle at center, rgba(0,0,0,0.85) 0%, rgba(3,3,5,0.99) 100%); z-index: 120; display: none; flex-direction: column; justify-content: center; align-items: center; gap: 20px; }
+    .victory-banner { font-family: 'Cinzel', serif; font-size: clamp(2rem, 6vw, 4rem); color: var(--gold); text-transform: uppercase; font-weight: 900; letter-spacing: 4px; text-shadow: 0 0 40px rgba(197, 160, 89, 0.65); animation: slideInVictory 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+    @keyframes slideInVictory { 0% { transform: translateY(-50px) scale(0.8); opacity: 0; } 100% { transform: translateY(0) scale(1); opacity: 1; } }
+    .victory-subtitle { font-size: 1.2rem; color: #ccc; margin-bottom: 20px; text-align: center; padding: 0 20px; }
+    .loot-card { background: rgba(10,10,15,0.92); border: var(--border-gold); border-radius: 6px; padding: 20px 40px; display: flex; flex-direction: column; align-items: center; gap: 10px; box-shadow: 0 10px 40px rgba(197,160,89,0.15); margin-bottom: 30px; }
+    .loot-row { display: flex; align-items: center; gap: 15px; font-size: 1.8rem; font-weight: 800; color: #fff; }
+    .loot-row span { color: var(--gold); }
+    .return-btn { background: linear-gradient(135deg, var(--gold), #9e7d3b); color: #000; border: none; padding: 14px 40px; font-size: 1rem; font-weight: 900; cursor: pointer; border-radius: 5px; text-transform: uppercase; letter-spacing: 2px; box-shadow: 0 8px 25px rgba(197,160,89,0.4); transition: all 0.3s ease; font-family: 'Outfit', sans-serif; }
+    .return-btn:hover { box-shadow: 0 12px 35px rgba(197, 160, 89, 0.6); transform: translateY(-2px); }
+    
+    .danger-overlay {
+      position: absolute; inset: 0; background: rgba(220, 0, 0, 0.18); pointer-events: none; z-index: 90;
+      opacity: 0; transition: opacity 0.15s ease;
+    }
+  </style>
+</head>
+<body>
+  <div id="danger-flash" class="danger-overlay"></div>
+
+  <div id="viewport-container">
+    <div class="click-to-play" id="lock-prompt">
+      <div class="play-icon">🌙</div>
+      <div class="play-title">Enter Mustang Pass</div>
+      <div class="play-subtitle">Click to lock your cursor and explore this walkable 3D map environment</div>
+      <button class="play-btn" onclick="requestLock()">ACTIVATE 3D VIEW &rarr;</button>
+    </div>
+    <div class="crosshair" id="screen-crosshair"></div>
+    <canvas id="render-canvas"></canvas>
+  </div>
+
+  <div class="top-hud">
+    <div style="display:flex; flex-direction:column; gap:15px;">
+      <div class="hud-card">
+        <div>
+          <div class="hud-title">Expedition Map</div>
+          <div id="hud-map-name" class="hud-value">Mustang Pass</div>
+        </div>
+        <div style="border-left:1px solid #333; padding-left:15px;">
+          <div class="hud-title">Active Character</div>
+          <div id="hud-char-name" class="hud-value">...</div>
+        </div>
+        <div style="border-left:1px solid #333; padding-left:15px;">
+          <div class="hud-title">Lives</div>
+          <div id="lives-counter" class="hud-value" style="color:#ff4d4d; letter-spacing: 2px;">❤️ ❤️ ❤️</div>
+        </div>
+        <div style="border-left:1px solid #333; padding-left:15px;">
+          <div class="hud-title">Inventory</div>
+          <div id="inventory-counter" class="hud-value" style="color:#e0e0e0;">Relic Pieces: <span id="puzzle-pieces-count" style="color:var(--gold);">0/3</span></div>
+        </div>
+      </div>
+
+      <div class="hud-card quest-log">
+        <div class="hud-title" style="font-weight:800; border-bottom:1px solid #222; width:100%; padding-bottom:4px;">Mission Objectives</div>
+        <div id="quest-cp1" class="quest-item unlocked">Solve Checkpoint 1 (Muktinath Jigsaw Puzzle)</div>
+        <div id="quest-cp2" class="quest-item">Solve Checkpoint 2 (Mustang Story Quiz)</div>
+        <div id="quest-cp3" class="quest-item">Find 3 Hidden Keys scattered in the environment</div>
+        <div id="quest-final" class="quest-item">Unlock the Ancient Combination lock at the Main Sacred Chest</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="minimap-container hud-element">
+    <canvas id="minimap-canvas"></canvas>
+  </div>
+
+  <div id="interact-prompt" class="interact-prompt">
+    <span class="key-badge">E</span> <span id="interact-text">Inspect Chest</span>
+  </div>
+
+  <div class="controls-guide hud-element">
+    <div>Move: <span style="color:#fff; font-weight:bold;">WASD / Arrows</span></div>
+    <div>Look: <span style="color:#fff; font-weight:bold;">Mouse (Locked)</span></div>
+    <div>Camera: <span style="color:#fff; font-weight:bold;">V (Toggle 3rd Person)</span></div>
+    <div>Interact: <span style="color:#fff; font-weight:bold;">E</span></div>
+    <div>Exit Look: <span style="color:#fff; font-weight:bold;">ESC</span></div>
+  </div>
+
+  <div id="audio-toggle" class="audio-toggle hud-element">
+    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" id="audio-icon"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+  </div>
+
+  <!-- Checkpoint 1: Jigsaw -->
+  <div id="modal-checkpoint-1" class="modal-overlay">
+    <div class="modal-container" style="width:400px;">
+      <div class="modal-header"><h2 class="modal-title">Muktinath Jigsaw Seal</h2></div>
+      <div class="modal-body">
+        <p style="margin-bottom:10px; text-align:center;">Reconstruct the Muktinath Temple image (3x3 grid) by clicking tiles to swap. Solve before time expires!</p>
+        <div class="jigsaw-container">
+          <div class="jigsaw-timer" id="jigsaw-timer-display">30s</div>
+          <canvas id="jigsaw-canvas" width="240" height="240"></canvas>
+        </div>
+        <div class="error-flash" id="jigsaw-status"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkpoint 2: Quiz -->
+  <div id="modal-checkpoint-2" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-title">Mustang Chronicles Quiz</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-checkpoint-2')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="quiz-question-title" style="margin-bottom:15px; font-weight:600; border-left:3px solid var(--gold); padding-left:12px;"></p>
+        <div class="choices-list" id="quiz-choices-container"></div>
+        <div class="error-flash" id="quiz-error"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Checkpoint 3: Keys -->
+  <div id="modal-checkpoint-3" class="modal-overlay">
+    <div class="modal-container" style="width:380px;">
+      <div class="modal-header">
+        <h2 class="modal-title">The Three Hidden Keys</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-checkpoint-3')">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p style="font-weight:bold; margin-bottom:12px;">"Checkpoint 3 is locked!"</p>
+        <p style="font-size:0.8rem; color:#bbb; line-height:1.5;">Search the environment to collect 3 hidden golden keys. Checkpoint 3 clears when all are found.</p>
+        <button class="modal-action-btn" onclick="closeOverlay('modal-checkpoint-3')" style="margin-top:20px;">Begin Search</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Final Combination Lock -->
+  <div id="modal-combination" class="modal-overlay">
+    <div class="modal-container" style="width:520px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Ancient Seal Combination</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-combination')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="text-align:center; margin-bottom:15px;">Place the 3 relic fragments in slots in altitude order (Plains &rarr; Valley &rarr; Caves) to crack the seal.</p>
+        <div class="combination-slots">
+          <div class="combo-slot" id="slot-0" onclick="removeFragment(0)"></div>
+          <div class="combo-slot" id="slot-1" onclick="removeFragment(1)"></div>
+          <div class="combo-slot" id="slot-2" onclick="removeFragment(2)"></div>
+        </div>
+        <div style="text-align:center; font-size:0.75rem; color:#888; margin-bottom:8px;">Relic Pool — click to place:</div>
+        <div class="fragments-pool" id="fragments-pool-container"></div>
+        <div class="error-flash" id="combo-error" style="margin-top:15px;"></div>
+        <button class="modal-action-btn" onclick="checkCombinationSubmit()" style="margin-top:10px;">Activate Seal</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warning: not enough fragments -->
+  <div id="modal-warning" class="modal-overlay">
+    <div class="modal-container" style="width:380px;">
+      <div class="modal-header">
+        <h2 class="modal-title" style="color:#ff4d4d;">Seal Sealed</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-warning')">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p style="font-size:1.1rem; font-weight:bold; margin-bottom:15px;">"You need 3 fragments. Keep exploring!"</p>
+        <p style="font-size:0.8rem; color:#888;">Collected: <span id="warning-pieces-collected" style="color:var(--gold); font-weight:bold;">0/3</span></p>
+        <button class="modal-action-btn" onclick="closeOverlay('modal-warning')" style="margin-top:20px;">Resume Quest</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over -->
+  <div id="modal-gameover" class="modal-overlay" style="background: rgba(12, 3, 3, 0.96); z-index: 1000;">
+    <div class="modal-container" style="border-color: #ff4d4d; width:400px; text-align:center; box-shadow:0 0 35px rgba(255,77,77,0.4);">
+      <h2 class="modal-title" style="color:#ff4d4d; font-size:1.8rem; margin-bottom:10px;">Expedition Failed</h2>
+      <p style="font-size:0.95rem; color:#bbb; line-height:1.6; margin-bottom:20px;">The hazards of the mountain route have depleted your strength.</p>
+      <button class="modal-action-btn" onclick="restartExpedition()" style="background:#ff4d4d; color:#fff; font-weight:800;">Restart Expedition</button>
+    </div>
+  </div>
+
+  <!-- Victory -->
+  <div id="victory-screen" class="victory-overlay">
+    <div class="victory-banner">Victory Claimed</div>
+    <div class="victory-subtitle">You cracked the Ancient Chest and recovered the Sacred Nepal Artifacts!</div>
+    <div class="loot-card">
+      <div class="hud-title">Expedition Rewards</div>
+      <div class="loot-row">🪙 <span id="earned-gold-value">250</span> Gold Coins</div>
+      <div class="quest-item" style="color:#4dfa62; border:none;">Level Up! LVL 14 &rarr; 15</div>
+    </div>
+    <button class="return-btn" onclick="returnToDashboard()">Return to Core Hub</button>
+  </div>
+
+  <script>
+    'use strict';
+
+    const skyImg = new Image();
+    skyImg.src = 'images/background.webp';
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let isMuted = false;
+    function playSound(type) {
+      if (isMuted) return;
+      try {
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'tick') {
+          osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
+          gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.start(now); osc.stop(now + 0.08);
+        } else if (type === 'interact') {
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.25);
+          gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'success') {
+          osc.type = 'sine';
+          [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => osc.frequency.setValueAtTime(f, now + i * 0.1));
+          gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+          osc.start(now); osc.stop(now + 0.55);
+        } else if (type === 'failure') {
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
+          osc.frequency.linearRampToValueAtTime(100, now + 0.25);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'victory') {
+          [523.25, 587.33, 659.25, 698.46, 783.99, 880, 987.77, 1046.5].forEach((freq, i) => {
+            const tOsc = audioCtx.createOscillator(), tGain = audioCtx.createGain();
+            tOsc.connect(tGain); tGain.connect(audioCtx.destination);
+            tOsc.type = 'sine'; tOsc.frequency.setValueAtTime(freq, now + i * 0.12);
+            tGain.gain.setValueAtTime(0.1, now + i * 0.12); tGain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.3);
+            tOsc.start(now + i * 0.12); tOsc.stop(now + i * 0.12 + 0.3);
+          });
+        }
+      } catch (e) {}
+    }
+    document.getElementById('audio-toggle').onclick = () => {
+      isMuted = !isMuted;
+      document.getElementById('audio-icon').style.fill = isMuted ? '#555' : 'var(--gold)';
+    };
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedChar = urlParams.get('selectedChar') || localStorage.getItem('nt_active_char') || 'char_1';
+    const CHARS = {
+      char_1: { name: "Sherpa Scout",      speed: 0.85, color: "#8B0000" },
+      char_2: { name: "Tharu Pathbreaker", speed: 0.98, color: "#E6E6FA" },
+      char_3: { name: "Rana Archaeologist",speed: 0.85, color: "#C3B091" },
+      char_4: { name: "Gorkha Vanguard",   speed: 0.80, color: "#2E461A" },
+      char_5: { name: "Yeti Mystic",       speed: 1.02, color: "#E6F2FF" },
+      char_6: { name: "Newa Artisan",      speed: 0.85, color: "#1A1A1A" },
+      char_7: { name: "Kumari Seer",       speed: 0.72, color: "#C41E3A" }
+    };
+    const activeChar = CHARS[selectedChar] || CHARS.char_1;
+    document.getElementById('hud-char-name').innerText = activeChar.name;
+
+    const THEME = { sky: '#06070c', ceil: '#0b0f1a', floor: '#1a2614', floorD: '#0d150b', torch: 600 };
+
+    let lives = 3;
+    function updateLivesUI() {
+      document.getElementById('lives-counter').innerHTML = "❤️ ".repeat(lives).trim();
+      if (lives <= 0) openGameOverModal();
+    }
+    function triggerDamage() {
+      lives--;
+      updateLivesUI();
+      playSound('failure');
+      const flash = document.getElementById('danger-flash');
+      flash.style.opacity = '1';
+      setTimeout(() => { flash.style.opacity = '0'; }, 300);
+      if (lives > 0) { player.x = 650; player.y = 800; player.angle = Math.PI * 1.5; }
+    }
+    function openGameOverModal() {
+      if (document.pointerLockElement) document.exitPointerLock();
+      openOverlay('modal-gameover');
+    }
+    window.restartExpedition = () => window.location.reload();
+
+    const MAP_SIZE = 24, TILE_SIZE = 64;
+    const MAP_GRID = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,3,3,3,3,3,3,3,1],
+      [1,0,3,3,0,3,3,0,2,2,0,0,0,0,0,0,3,3,3,3,3,3,3,1],
+      [1,0,3,3,0,3,3,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,1],
+      [1,0,0,0,0,0,0,0,2,2,2,0,4,4,4,0,0,0,0,3,3,3,0,1],
+      [1,0,2,2,2,2,2,0,2,0,0,0,0,0,2,0,0,0,0,0,0,0,0,1],
+      [1,0,2,0,0,0,2,0,2,0,0,0,0,0,2,0,2,2,2,2,2,2,0,1],
+      [1,0,2,0,0,0,2,0,2,2,2,0,2,2,2,0,2,0,0,0,0,2,0,1],
+      [1,0,2,2,0,2,2,0,0,0,0,0,0,0,0,0,2,0,3,3,0,2,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,3,3,0,2,0,1],
+      [1,0,0,0,0,0,0,0,2,2,2,2,2,2,0,0,2,0,0,0,0,2,0,1],
+      [1,0,2,2,2,2,0,0,2,2,2,2,2,2,0,0,2,2,2,0,2,2,0,1],
+      [1,0,2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,2,2,0,2,2,2,2,0,0,0,2,2,2,2,2,2,2,2,2,2,0,1],
+      [1,0,0,0,0,0,0,0,2,0,0,0,2,3,3,3,3,3,3,3,3,2,0,1],
+      [1,3,3,3,3,3,0,0,2,0,0,0,2,3,3,3,3,3,3,3,3,2,0,1],
+      [1,3,3,3,3,3,3,0,2,2,0,2,2,3,3,3,3,3,3,3,3,2,0,1],
+      [1,3,3,3,3,3,3,0,0,0,0,0,0,0,3,3,3,3,3,3,3,2,0,1],
+      [1,2,2,2,2,2,2,0,0,0,0,0,0,0,2,2,2,2,2,2,2,2,0,1],
+      [1,0,0,0,0,0,0,0,3,3,0,3,3,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,3,3,0,3,3,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+    function isSolid(gx, gy) { return gx < 0 || gx >= MAP_SIZE || gy < 0 || gy >= MAP_SIZE || MAP_GRID[gy][gx] > 0; }
+
+    const player = { x: 650, y: 800, angle: Math.PI * 1.5, fov: Math.PI / 3, speed: 2.8 * activeChar.speed, ms: 0.0022 };
+    let isThirdPerson = false, cameraBob = 0, cameraBobTime = 0;
+    let zBuffer = [], horizonBob = 0, walkTime = 0, mmTick = 0;
+
+    const CHECKPOINTS = [
+      { id: 1, x: 4*TILE_SIZE+32,  y: 2*TILE_SIZE+32,  label: 'Muktinath Jigsaw', hex: '#4dfaff', rgb: [77,250,255],  solved: false, qid: 'quest-cp1' },
+      { id: 2, x: 13*TILE_SIZE+32, y: 9*TILE_SIZE+32,  label: 'Mustang Quiz',     hex: '#ffe64d', rgb: [255,230,77],  solved: false, qid: 'quest-cp2' },
+      { id: 3, x: 6*TILE_SIZE+32,  y: 15*TILE_SIZE+32, label: '3 Hidden Keys',    hex: '#ff4dfa', rgb: [255,77,250],  solved: false, qid: 'quest-cp3' },
+      { id: 4, x: 21*TILE_SIZE+32, y: 12*TILE_SIZE+32, label: 'Final Treasure',   hex: '#ffb700', rgb: [255,183,0],   solved: false, final: true, qid: 'quest-final' }
+    ];
+
+    const FRAGS = [
+      { id: 'frag_a', icon: '📜', name: 'Relic Peak Caves Relief',   sub: 'Mustang Caves'  },
+      { id: 'frag_b', icon: '🗿', name: 'Relic Kali Gandaki Plain',   sub: 'Mustang Plains' },
+      { id: 'frag_c', icon: '🏔', name: 'Relic Lo Manthang Village',  sub: 'Mustang Valley' }
+    ];
+
+    const sprites = [
+      { type: 'palm',    x: 1*TILE_SIZE+32,  y: 2*TILE_SIZE+32,  scale: 1.2 },
+      { type: 'palm',    x: 4*TILE_SIZE+32,  y: 2*TILE_SIZE+32,  scale: 1.2 },
+      { type: 'palm',    x: 7*TILE_SIZE+32,  y: 2*TILE_SIZE+32,  scale: 1.2 },
+      { type: 'palm',    x: 8*TILE_SIZE+32,  y: 7*TILE_SIZE+32,  scale: 1.2 },
+      { type: 'palm',    x: 12*TILE_SIZE+32, y: 12*TILE_SIZE+32, scale: 1.2 },
+      { type: 'palm',    x: 19*TILE_SIZE+32, y: 21*TILE_SIZE+32, scale: 1.2 },
+      { type: 'chorten', x: 8*TILE_SIZE+32,  y: 3*TILE_SIZE+32,  scale: 1.1 },
+      { type: 'chorten', x: 15*TILE_SIZE+32, y: 18*TILE_SIZE+32, scale: 1.1 },
+      { type: 'bench',   x: 8*TILE_SIZE+32,  y: 22*TILE_SIZE+32, scale: 0.8 },
+      { type: 'bench',   x: 14*TILE_SIZE+32, y: 3*TILE_SIZE+32,  scale: 0.8 },
+      { type: 'garbage', x: 15*TILE_SIZE+32, y: 12*TILE_SIZE+32, scale: 0.6 },
+      { type: 'garbage', x: 5*TILE_SIZE+32,  y: 18*TILE_SIZE+32, scale: 0.6 },
+      { type: 'key1', x: 7*TILE_SIZE+32,  y: 2*TILE_SIZE+42,  scale: 0.5, hidden: true, collected: false },
+      { type: 'key2', x: 15*TILE_SIZE+32, y: 12*TILE_SIZE+42, scale: 0.5, hidden: true, collected: false },
+      { type: 'key3', x: 8*TILE_SIZE+32,  y: 22*TILE_SIZE+42, scale: 0.5, hidden: true, collected: false },
+      { type: 'vehicle1', x: 2*TILE_SIZE,      y: 9*TILE_SIZE+32,  scale: 1.0, isVehicle: true, dx: 2.8,  minX: 1*TILE_SIZE,  maxX: 15*TILE_SIZE },
+      { type: 'vehicle2', x: 7*TILE_SIZE+32,   y: 11*TILE_SIZE,    scale: 1.0, isVehicle: true, dy: 3.5,  minY: 10*TILE_SIZE, maxY: 21*TILE_SIZE }
+    ];
+
+    const INTERACT_R = 80;
+    let inventory = [], comboSlots = [null, null, null], nearCP = null, modalOpen = false;
+    let keysActive = false, keysCollected = 0;
+
+    const canvas3D = document.getElementById('render-canvas');
+    const viewport = document.getElementById('viewport-container');
+    const ctx = canvas3D.getContext('2d');
+    const lockPrompt = document.getElementById('lock-prompt');
+    const crosshair = document.getElementById('screen-crosshair');
+
+    function requestLock() { audioCtx.resume(); viewport.requestPointerLock(); }
+    document.addEventListener('pointerlockchange', () => {
+      if (document.pointerLockElement === viewport) {
+        lockPrompt.style.display = 'none';
+      } else if (!document.getElementById('victory-screen').style.display.includes('flex') && lives > 0) {
+        lockPrompt.style.display = 'flex';
+      }
+    });
+
+    const keys = {};
+    window.addEventListener('mousemove', e => {
+      if (document.pointerLockElement === viewport) player.angle += e.movementX * player.ms;
+    });
+    window.addEventListener('keydown', e => {
+      keys[e.key.toLowerCase()] = true;
+      if (e.key.toLowerCase() === 'e') {
+        if (nearCP && !modalOpen) handleInteract();
+        else if (keysActive) handleKeyPickup();
+      }
+      if (e.key.toLowerCase() === 'v') {
+        isThirdPerson = !isThirdPerson;
+        crosshair.style.opacity = isThirdPerson ? '0' : '1';
+        playSound('tick');
+      }
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay').forEach(m => { if (m.id !== 'modal-gameover') m.style.display = 'none'; });
+        modalOpen = false;
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+    const offscreen = {};
+    function buildOffscreenAsset(name, w, h, drawFn) {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      drawFn(c.getContext('2d'), w, h); offscreen[name] = c;
+    }
+
+    buildOffscreenAsset('palm', 128, 128, (c) => {
+      c.fillStyle = '#8b5a2b'; c.fillRect(60, 40, 8, 88);
+      c.strokeStyle = '#5c3815'; c.lineWidth = 2;
+      for (let y=50; y<120; y+=12) { c.beginPath(); c.moveTo(58,y); c.lineTo(70,y); c.stroke(); }
+      c.fillStyle = '#2d6a1b';
+      function frond(px, py, a) { c.save(); c.translate(px,py); c.rotate(a); c.beginPath(); c.ellipse(25,0,25,6,0,0,Math.PI*2); c.fill(); c.restore(); }
+      for (let a=0; a<Math.PI*2; a+=Math.PI/4) frond(64, 40, a);
+    });
+    buildOffscreenAsset('chorten', 128, 128, (c) => {
+      c.fillStyle = '#eae6df'; c.beginPath(); c.moveTo(34,110); c.lineTo(94,110); c.lineTo(84,50); c.lineTo(44,50); c.closePath(); c.fill();
+      c.fillStyle = '#9e4233'; c.fillRect(43,85,42,6);
+      c.fillStyle = '#c5a059'; c.fillRect(60,10,8,40); c.beginPath(); c.moveTo(54,25); c.lineTo(74,25); c.lineTo(64,10); c.closePath(); c.fill();
+    });
+    buildOffscreenAsset('bench', 128, 128, (c) => {
+      c.fillStyle = '#1c1815'; c.fillRect(30,80,8,40); c.fillRect(90,80,8,40);
+      c.fillStyle = '#a86f4a'; c.fillRect(20,65,88,15); c.fillRect(20,45,88,15);
+    });
+    buildOffscreenAsset('garbage', 128, 128, (c) => {
+      c.fillStyle = '#4a4846'; c.beginPath(); c.arc(50,95,20,0,Math.PI*2); c.fill();
+      c.fillStyle = '#343332'; c.beginPath(); c.arc(75,98,16,0,Math.PI*2); c.fill();
+      c.fillStyle = '#9c9187'; c.fillRect(30,105,12,8);
+      c.fillStyle = '#c55e5e'; c.beginPath(); c.arc(64,110,5,0,Math.PI*2); c.fill();
+    });
+    buildOffscreenAsset('key', 64, 64, (c) => {
+      c.strokeStyle = '#c5a059'; c.lineWidth = 4;
+      c.beginPath(); c.arc(32,20,10,0,Math.PI*2); c.stroke();
+      c.fillStyle = '#c5a059'; c.fillRect(29,30,6,25); c.fillRect(35,45,10,6); c.fillRect(35,51,8,4);
+    });
+    buildOffscreenAsset('vehicle', 256, 128, (c) => {
+      c.fillStyle = '#c54233'; c.fillRect(10,30,236,68);
+      c.fillStyle = '#3a598c'; c.fillRect(10,60,236,15);
+      c.fillStyle = '#eae6df'; c.fillRect(10,15,236,15);
+      c.fillStyle = '#222'; for (let i=0; i<5; i++) c.fillRect(25+i*42,35,30,20);
+      c.fillStyle = '#111'; c.beginPath(); c.arc(60,105,20,0,Math.PI*2); c.fill();
+      c.beginPath(); c.arc(190,105,20,0,Math.PI*2); c.fill();
+    });
+    ['char_1','char_2','char_3','char_4','char_5','char_6','char_7'].forEach((id, i) => {
+      const colors = ['#8B0000','#eaeaea','#c3b091','#2e461a','#eae6df','#1a1a1a','#c41e3a'];
+      buildOffscreenAsset(`${id}_back`, 128, 128, (c) => {
+        c.fillStyle = colors[i]; c.fillRect(34,40,60,88);
+      });
+    });
+
+    function updateMovementPhysics() {
+      if (modalOpen) return;
+      let dx = 0, dy = 0;
+      if (keys['w']||keys['arrowup'])    { dx += Math.cos(player.angle); dy += Math.sin(player.angle); }
+      if (keys['s']||keys['arrowdown'])  { dx -= Math.cos(player.angle); dy -= Math.sin(player.angle); }
+      if (keys['a']||keys['arrowleft'])  { dx += Math.sin(player.angle); dy -= Math.cos(player.angle); }
+      if (keys['d']||keys['arrowright']) { dx -= Math.cos(player.angle); dy += Math.cos(player.angle); }
+      const moving = dx !== 0 || dy !== 0;
+      if (moving) {
+        walkTime += 0.08; horizonBob = Math.sin(walkTime) * 3.0;
+        cameraBobTime += 0.16; cameraBob = Math.sin(cameraBobTime) * 1.8;
+      } else { horizonBob *= 0.85; cameraBob *= 0.85; }
+      if (!moving) return;
+      const nx = player.x + dx * player.speed, ny = player.y + dy * player.speed;
+      const gx = Math.floor(nx/TILE_SIZE), gy = Math.floor(ny/TILE_SIZE);
+      const cgx = Math.floor(player.x/TILE_SIZE), cgy = Math.floor(player.y/TILE_SIZE);
+      if (!isSolid(gx,gy)) { player.x = nx; player.y = ny; }
+      else { if (!isSolid(gx,cgy)) player.x = nx; if (!isSolid(cgx,gy)) player.y = ny; }
+    }
+
+    function updateVehiclesPhysics() {
+      if (modalOpen) return;
+      sprites.forEach(s => {
+        if (!s.isVehicle) return;
+        if (s.dx) { s.x += s.dx; if (s.x > s.maxX || s.x < s.minX) s.dx = -s.dx; }
+        if (s.dy) { s.y += s.dy; if (s.y > s.maxY || s.y < s.minY) s.dy = -s.dy; }
+        if (Math.hypot(player.x - s.x, player.y - s.y) < 28) triggerDamage();
+      });
+    }
+
+    function projectPoint(x, y, camX, camY, W, H, horizon) {
+      let rx = x-camX, ry = y-camY;
+      let sa = Math.atan2(ry,rx) - player.angle;
+      while (sa > Math.PI) sa -= 2*Math.PI;
+      while (sa < -Math.PI) sa += 2*Math.PI;
+      const cd = Math.hypot(rx,ry) * Math.cos(sa);
+      if (cd <= 0) return null;
+      return { x: (W/2) + (W/2)*Math.tan(sa)/Math.tan(player.fov/2), y: horizon + (TILE_SIZE*H/2)/cd };
+    }
+
+    function getCamPos() {
+      let camX = player.x, camY = player.y;
+      if (isThirdPerson) {
+        let ba = player.angle + Math.PI;
+        for (let d=0; d<70; d+=2) {
+          let tx = player.x + Math.cos(ba)*d, ty = player.y + Math.sin(ba)*d;
+          if (isSolid(Math.floor(tx/TILE_SIZE), Math.floor(ty/TILE_SIZE))) break;
+          camX = tx; camY = ty;
+        }
+      }
+      return { camX, camY };
+    }
+
+    function renderRaycast3D() {
+      const W = canvas3D.width = canvas3D.clientWidth;
+      const H = canvas3D.height = canvas3D.clientHeight;
+      const { camX, camY } = getCamPos();
+      const horizon = Math.round(H/2 + horizonBob);
+
+      // Static background image (no panning)
+      if (skyImg.complete && skyImg.naturalWidth > 0) {
+        ctx.drawImage(skyImg, 0, 0, skyImg.width, skyImg.height, 0, 0, W, horizon);
+      } else {
+        const cg = ctx.createLinearGradient(0, 0, 0, horizon);
+        cg.addColorStop(0, THEME.sky); cg.addColorStop(1, THEME.ceil);
+        ctx.fillStyle = cg; ctx.fillRect(0, 0, W, horizon);
+      }
+
+      const fg = ctx.createLinearGradient(0, horizon, 0, H);
+      fg.addColorStop(0, THEME.floor); fg.addColorStop(1, THEME.floorD);
+      ctx.fillStyle = fg; ctx.fillRect(0, horizon, W, H - horizon);
+
+      function drawRoad(x1,y1,x2,y2,x3,y3,x4,y4) {
+        const p1=projectPoint(x1,y1,camX,camY,W,H,horizon);
+        const p2=projectPoint(x2,y2,camX,camY,W,H,horizon);
+        const p3=projectPoint(x3,y3,camX,camY,W,H,horizon);
+        const p4=projectPoint(x4,y4,camX,camY,W,H,horizon);
+        if (!p1||!p2||!p3||!p4) return;
+        ctx.save();
+        ctx.fillStyle='#222224';
+        ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.lineTo(p3.x,p3.y); ctx.lineTo(p4.x,p4.y); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle='#9e7d3b'; ctx.lineWidth=3; ctx.setLineDash([12,18]);
+        ctx.beginPath(); ctx.moveTo((p1.x+p4.x)/2,(p1.y+p4.y)/2); ctx.lineTo((p2.x+p3.x)/2,(p2.y+p3.y)/2); ctx.stroke();
+        ctx.restore();
+      }
+      drawRoad(1*TILE_SIZE,9*TILE_SIZE, 15*TILE_SIZE,9*TILE_SIZE, 15*TILE_SIZE,10*TILE_SIZE, 1*TILE_SIZE,10*TILE_SIZE);
+      drawRoad(7*TILE_SIZE,10*TILE_SIZE, 8*TILE_SIZE,10*TILE_SIZE, 8*TILE_SIZE,21*TILE_SIZE, 7*TILE_SIZE,21*TILE_SIZE);
+
+      zBuffer = new Array(W);
+      const startAngle = player.angle - player.fov/2;
+      for (let col=0; col<W; col++) {
+        const rayAngle = startAngle + (col/W)*player.fov;
+        const cosA = Math.cos(rayAngle), sinA = Math.sin(rayAngle);
+        let dist=0, wallType=0, hit=false;
+        while (!hit && dist<1400) {
+          dist += 2;
+          const cx = Math.floor((camX+cosA*dist)/TILE_SIZE);
+          const cy = Math.floor((camY+sinA*dist)/TILE_SIZE);
+          if (cx<0||cx>=MAP_SIZE||cy<0||cy>=MAP_SIZE) { hit=true; dist=1400; }
+          else if (MAP_GRID[cy][cx]>0) { hit=true; wallType=MAP_GRID[cy][cx]; }
+        }
+        const corrected = dist * Math.cos(rayAngle - player.angle);
+        zBuffer[col] = corrected;
+        const wH = Math.min(H*2, (TILE_SIZE*H)/(corrected+0.001));
+        const factor = 1 - Math.abs(col-W/2)/(W/2);
+        const torch = Math.max(0,(THEME.torch-corrected)/THEME.torch)*(0.28+factor*0.72);
+        const brt = Math.min(1, 0.12+torch*0.88);
+
+        let hitX = camX+cosA*dist, hitY = camY+sinA*dist;
+        let offset = Math.abs(hitX - Math.round(hitX/TILE_SIZE)*TILE_SIZE) < Math.abs(hitY - Math.round(hitY/TILE_SIZE)*TILE_SIZE) ? hitY%TILE_SIZE : hitX%TILE_SIZE;
+        const yTop = horizon - wH/2;
+
+        if (wallType === 2) {
+          ctx.fillStyle = `rgb(${Math.floor(135*brt)},${Math.floor(125*brt)},${Math.floor(115*brt)})`; ctx.fillRect(col,yTop,1,wH);
+          const rH = wH*0.20;
+          ctx.fillStyle = `rgb(${Math.floor(215*brt)},${Math.floor(165*brt)},${Math.floor(45*brt)})`; ctx.fillRect(col,yTop,1,rH);
+          ctx.fillStyle = `rgb(${Math.floor(95*brt)},${Math.floor(65*brt)},${Math.floor(40*brt)})`; ctx.fillRect(col,yTop+rH,1,Math.max(1,wH*0.03));
+          let wo = Math.floor(offset)%40;
+          if (wo>12&&wo<28) {
+            const wt=yTop+wH*0.45, wh=wH*0.22;
+            ctx.fillStyle=`rgb(${Math.floor(35*brt)},${Math.floor(25*brt)},${Math.floor(20*brt)})`; ctx.fillRect(col,wt,1,wh);
+            if (wo%6<2) { ctx.fillStyle=`rgb(${Math.floor(140*brt)},${Math.floor(90*brt)},${Math.floor(55*brt)})`; ctx.fillRect(col,wt,1,wh); }
+          }
+        } else if (wallType === 3) {
+          ctx.fillStyle = `rgb(${Math.floor(140*brt)},${Math.floor(65*brt)},${Math.floor(55*brt)})`; ctx.fillRect(col,yTop,1,wH);
+          for (let y=Math.floor(yTop); y<Math.floor(yTop+wH); y+=Math.max(4,Math.floor(wH*0.08))) {
+            ctx.fillStyle=`rgba(40,40,40,${0.45*brt})`; ctx.fillRect(col,y,1,1);
+          }
+          const rH=wH*0.20;
+          ctx.fillStyle=`rgb(${Math.floor(60*brt)},${Math.floor(55*brt)},${Math.floor(65*brt)})`; ctx.fillRect(col,yTop,1,rH);
+          let wo=Math.floor(offset)%48;
+          if (wo>15&&wo<33) {
+            const wt=yTop+wH*0.42, wh=wH*0.28;
+            if (wo===16||wo===32) { ctx.fillStyle=`rgb(${Math.floor(230*brt)},${Math.floor(230*brt)},${Math.floor(230*brt)})`; ctx.fillRect(col,wt,1,wh); }
+            else { ctx.fillStyle=`rgb(${Math.floor(35*brt)},${Math.floor(45*brt)},${Math.floor(65*brt)})`; ctx.fillRect(col,wt+1,1,wh-2); }
+          }
+        } else {
+          ctx.fillStyle=`rgb(${Math.floor(215*brt)},${Math.floor(205*brt)},${Math.floor(175*brt)})`; ctx.fillRect(col,yTop,1,wH);
+          const rH=wH*0.15;
+          ctx.fillStyle=`rgb(${Math.floor(145*brt)},${Math.floor(65*brt)},${Math.floor(45*brt)})`; ctx.fillRect(col,yTop,1,rH);
+          ctx.fillStyle=`rgb(${Math.floor(80*brt)},${Math.floor(35*brt)},${Math.floor(25*brt)})`; ctx.fillRect(col,yTop+rH,1,Math.max(1,wH*0.03));
+        }
+      }
+    }
+
+    function renderSprites3D() {
+      const W=canvas3D.width, H=canvas3D.height;
+      const horizon=Math.round(H/2+horizonBob);
+      const { camX, camY } = getCamPos();
+      const list = [];
+
+      CHECKPOINTS.forEach(cp => {
+        if (!cp.solved || cp.final) {
+          if (Math.hypot(cp.x-player.x, cp.y-player.y) < 250) {
+            list.push({ type: cp.final?'final':'checkpoint', x:cp.x, y:cp.y, scale:1.0, label:cp.label, hex:cp.hex, rgb:cp.rgb });
+          }
+        }
+      });
+      sprites.forEach(s => { if (!s.hidden) list.push(s); });
+      if (isThirdPerson) list.push({ type:'player', x:player.x, y:player.y, scale:0.8 });
+
+      list.map(s => ({ s, dist: Math.hypot(s.x-camX, s.y-camY) }))
+        .sort((a,b) => b.dist-a.dist)
+        .forEach(({ s, dist }) => {
+          if (dist < 15) return;
+          let sa = Math.atan2(s.y-camY, s.x-camX) - player.angle;
+          while (sa > Math.PI) sa -= 2*Math.PI;
+          while (sa < -Math.PI) sa += 2*Math.PI;
+          if (Math.abs(sa) > player.fov*0.72) return;
+          const cd = dist*Math.cos(sa);
+          const sx = (W/2)+(W/2)*Math.tan(sa)/Math.tan(player.fov/2);
+          if (sx<-200||sx>W+200) return;
+          const sH = Math.min(H*2.5,(TILE_SIZE*H*1.35*s.scale)/(cd+0.001));
+          const sW = sH;
+          const brt = Math.max(0.04, Math.min(1, 1-cd/1200));
+
+          if (s.type==='checkpoint'||s.type==='final') {
+            const [r,g,b]=s.rgb;
+            const beamW=Math.max(3,sH*0.15), yTop=horizon-sH/2;
+            const bg=ctx.createRadialGradient(sx,horizon,0,sx,horizon,sH*0.55);
+            bg.addColorStop(0,`rgba(${r},${g},${b},${(brt*0.25).toFixed(3)})`);
+            bg.addColorStop(1,`rgba(${r},${g},${b},0)`);
+            ctx.fillStyle=bg; ctx.fillRect(sx-sH*0.55,horizon-sH*0.55,sH*1.1,sH*1.1);
+            const beam=ctx.createLinearGradient(sx-beamW,0,sx+beamW,0);
+            beam.addColorStop(0,`rgba(${r},${g},${b},0)`);
+            beam.addColorStop(0.3,`rgba(${r},${g},${b},${brt.toFixed(3)})`);
+            beam.addColorStop(0.7,`rgba(${r},${g},${b},${brt.toFixed(3)})`);
+            beam.addColorStop(1,`rgba(${r},${g},${b},0)`);
+            ctx.fillStyle=beam; ctx.fillRect(sx-beamW,yTop,beamW*2,sH);
+            if (cd<320&&brt>0.18) {
+              ctx.save(); ctx.globalAlpha=Math.min(1,brt*1.4);
+              ctx.fillStyle='#fff'; ctx.font=`bold ${Math.max(9,Math.floor(13*brt))}px Outfit,sans-serif`;
+              ctx.textAlign='center'; ctx.fillText(s.label,sx,yTop-8); ctx.restore();
+            }
+            return;
+          }
+
+          let assetName = s.type==='player' ? `${selectedChar}_back` : s.type.startsWith('vehicle') ? 'vehicle' : s.type.startsWith('key') ? 'key' : s.type;
+          const img = offscreen[assetName]; if (!img) return;
+          const startX=Math.round(sx-sW/2), endX=Math.round(sx+sW/2), targetY=horizon-sH/2;
+          for (let x=startX; x<endX; x++) {
+            if (x<0||x>=W) continue;
+            if (zBuffer[x]!==undefined&&cd>zBuffer[x]+2) continue;
+            ctx.drawImage(img, Math.floor(((x-startX)/sW)*img.width), 0, 1, img.height, x, targetY, 1, sH);
+          }
+        });
+    }
+
+    function renderMinimapHUD() {
+      const mc=document.getElementById('minimap-canvas'), mm=mc.getContext('2d');
+      if (mc.width!==140){mc.width=140;mc.height=140;}
+      const scale=70/(7*TILE_SIZE);
+      mm.clearRect(0,0,140,140); mm.fillStyle='#030306'; mm.fillRect(0,0,140,140);
+      mm.save(); mm.translate(70,70);
+      for (let gy=0;gy<MAP_SIZE;gy++) for (let gx=0;gx<MAP_SIZE;gx++) {
+        const rx=(gx*TILE_SIZE-player.x)*scale, ry=(gy*TILE_SIZE-player.y)*scale, ts=TILE_SIZE*scale+0.5;
+        const cell=MAP_GRID[gy][gx];
+        mm.fillStyle=cell>0?(cell===1?'#2b1a13':cell===2?'#6e5c53':cell===3?'#6e382f':'#8c8078'):'#09090e';
+        mm.fillRect(rx,ry,ts,ts);
+      }
+      CHECKPOINTS.forEach(cp => {
+        if (cp.id===1||CHECKPOINTS[cp.id-2].solved) {
+          mm.fillStyle=cp.solved?'#4dfa62':cp.hex;
+          mm.beginPath(); mm.arc((cp.x-player.x)*scale,(cp.y-player.y)*scale,4,0,Math.PI*2); mm.fill();
+        }
+      });
+      mm.fillStyle='#fff'; mm.beginPath(); mm.arc(0,0,3.5,0,Math.PI*2); mm.fill();
+      mm.strokeStyle='#fff'; mm.lineWidth=2; mm.beginPath();
+      mm.moveTo(0,0); mm.lineTo(Math.cos(player.angle)*12,Math.sin(player.angle)*12); mm.stroke();
+      mm.restore();
+    }
+
+    function checkProximityInteracts() {
+      let closestCp=null, minD=Infinity;
+      CHECKPOINTS.forEach(cp => { const d=Math.hypot(cp.x-player.x,cp.y-player.y); if(d<INTERACT_R&&d<minD){closestCp=cp;minD=d;} });
+      nearCP=closestCp;
+      const promptEl=document.getElementById('interact-prompt'), promptText=document.getElementById('interact-text');
+      if (closestCp) {
+        const isUnlocked = closestCp.id===1 || CHECKPOINTS[closestCp.id-2].solved;
+        if (isUnlocked) {
+          promptText.innerText=closestCp.final?(closestCp.solved?'Sacred Chest (Complete)':'Inspect Sacred Chest Seal'):(closestCp.solved?`${closestCp.label} (Cleared)`:`Inspect ${closestCp.label}`);
+          promptEl.style.display=(closestCp.solved&&!closestCp.final)?'none':'block';
+        } else promptEl.style.display='none';
+      } else if (keysActive) {
+        let nearKey=null;
+        sprites.forEach(s=>{if(!s.type.startsWith('key')||s.hidden||s.collected)return; if(Math.hypot(s.x-player.x,s.y-player.y)<45)nearKey=s;});
+        promptText.innerText='Collect Golden Key'; promptEl.style.display=nearKey?'block':'none';
+      } else promptEl.style.display='none';
+    }
+
+    function handleInteract() {
+      if (!nearCP||(nearCP.solved&&!nearCP.final)) return;
+      playSound('interact');
+      if (nearCP.id===2&&!CHECKPOINTS[0].solved) { showNotif('Solve Mission 1 first!'); playSound('failure'); return; }
+      if (nearCP.id===3&&!CHECKPOINTS[1].solved) { showNotif('Solve Mission 2 first!'); playSound('failure'); return; }
+      if (nearCP.final) {
+        if (!CHECKPOINTS[2].solved) { showNotif('Solve Mission 3 first!'); playSound('failure'); return; }
+        if (inventory.length<3) { document.getElementById('warning-pieces-collected').innerText=`${inventory.length}/3`; openOverlay('modal-warning'); }
+        else openCombinationModal();
+        return;
+      }
+      if (nearCP.id===1) { initJigsawPuzzle(); openOverlay('modal-checkpoint-1'); }
+      else if (nearCP.id===2) { initMustangQuiz(); openOverlay('modal-checkpoint-2'); }
+      else if (nearCP.id===3) {
+        keysActive=true;
+        sprites.forEach(s=>{if(s.type.startsWith('key'))s.hidden=false;});
+        openOverlay('modal-checkpoint-3');
+      }
+    }
+
+    function openOverlay(id) {
+      document.getElementById(id).style.display='flex'; modalOpen=true;
+      if (document.pointerLockElement) document.exitPointerLock();
+      keys.w=keys.a=keys.s=keys.d=keys.arrowup=keys.arrowdown=keys.arrowleft=keys.arrowright=false;
+    }
+    function closeOverlay(id) {
+      document.getElementById(id).style.display='none'; playSound('tick');
+      modalOpen=(document.querySelectorAll('.modal-overlay[style*="flex"]').length>0);
+    }
+
+    // Jigsaw Puzzle
+    let jigsawTimerVal=30, jigsawTimerInterval=null, jigsawTiles=[], jigsawSelectedIdx=null;
+    const pieceSize=80, jigsawCanvas=document.getElementById('jigsaw-canvas'), jigsawCtx=jigsawCanvas.getContext('2d');
+    const offscreenImg=document.createElement('canvas'); offscreenImg.width=240; offscreenImg.height=240;
+    const oCtx=offscreenImg.getContext('2d');
+    oCtx.fillStyle='#1c0f05'; oCtx.fillRect(0,0,240,240);
+    oCtx.fillStyle='#ff7a3d'; oCtx.fillRect(20,180,200,60);
+    oCtx.fillStyle='#8b2b2b'; oCtx.fillRect(60,100,120,80);
+    oCtx.fillStyle='#c5a059'; oCtx.fillRect(110,120,20,60);
+    oCtx.fillStyle='#c5a059'; oCtx.beginPath(); oCtx.moveTo(40,100); oCtx.lineTo(200,100); oCtx.lineTo(120,60); oCtx.closePath(); oCtx.fill();
+    oCtx.fillStyle='#ffd700'; oCtx.fillRect(115,20,10,40); oCtx.beginPath(); oCtx.moveTo(105,30); oCtx.lineTo(135,30); oCtx.lineTo(120,10); oCtx.closePath(); oCtx.fill();
+    oCtx.fillStyle='#b08b46'; for(let i=0;i<8;i++) oCtx.fillRect(70+i*13,160,6,8);
+
+    function initJigsawPuzzle() {
+      jigsawTimerVal=30; document.getElementById('jigsaw-timer-display').innerText='30s';
+      document.getElementById('jigsaw-status').innerText=''; jigsawSelectedIdx=null;
+      jigsawTiles=[]; for(let i=0;i<9;i++) jigsawTiles.push(i);
+      for(let i=8;i>0;i--){const j=Math.floor(Math.random()*(i+1));[jigsawTiles[i],jigsawTiles[j]]=[jigsawTiles[j],jigsawTiles[i]];}
+      renderJigsawCanvas();
+      if(jigsawTimerInterval) clearInterval(jigsawTimerInterval);
+      jigsawTimerInterval=setInterval(()=>{
+        jigsawTimerVal--; document.getElementById('jigsaw-timer-display').innerText=`${jigsawTimerVal}s`;
+        if(jigsawTimerVal<=0){clearInterval(jigsawTimerInterval);handleJigsawFailure();}
+      },1000);
+    }
+    function renderJigsawCanvas() {
+      jigsawCtx.clearRect(0,0,240,240);
+      for(let i=0;i<9;i++){
+        const pi=jigsawTiles[i], row=Math.floor(i/3), col=i%3;
+        jigsawCtx.drawImage(offscreenImg,(pi%3)*pieceSize,Math.floor(pi/3)*pieceSize,pieceSize,pieceSize,col*pieceSize,row*pieceSize,pieceSize,pieceSize);
+        jigsawCtx.strokeStyle='rgba(197,160,89,0.4)'; jigsawCtx.strokeRect(col*pieceSize,row*pieceSize,pieceSize,pieceSize);
+        if(jigsawSelectedIdx===i){jigsawCtx.fillStyle='rgba(255,255,255,0.28)';jigsawCtx.fillRect(col*pieceSize,row*pieceSize,pieceSize,pieceSize);}
+      }
+    }
+    jigsawCanvas.onclick=function(e){
+      const r=jigsawCanvas.getBoundingClientRect();
+      const clicked=Math.floor((e.clientY-r.top)/pieceSize)*3+Math.floor((e.clientX-r.left)/pieceSize);
+      if(jigsawSelectedIdx===null){jigsawSelectedIdx=clicked;playSound('tick');}
+      else{[jigsawTiles[jigsawSelectedIdx],jigsawTiles[clicked]]=[jigsawTiles[clicked],jigsawTiles[jigsawSelectedIdx]];jigsawSelectedIdx=null;playSound('tick');renderJigsawCanvas();checkJigsawSolved();}
+    };
+    function checkJigsawSolved(){
+      if(jigsawTiles.every((v,i)=>v===i)){
+        clearInterval(jigsawTimerInterval);
+        document.getElementById('jigsaw-status').style.color='#4dfa62';
+        document.getElementById('jigsaw-status').innerText='✓ Seal Unlocked!'; playSound('success');
+        setTimeout(()=>{closeOverlay('modal-checkpoint-1');solveCP(1);giveFragment('frag_a');unlockQuest(2);},1500);
+      }
+    }
+    function handleJigsawFailure(){
+      triggerDamage();
+      if(lives>0){document.getElementById('jigsaw-status').style.color='#ff4d4d';document.getElementById('jigsaw-status').innerText='Failed! Lost 1 life. Retry...';setTimeout(initJigsawPuzzle,1800);}
+      else closeOverlay('modal-checkpoint-1');
+    }
+
+    // Quiz
+    let quizQuestionIndex=0;
+    const quizQuestions=[
+      {q:"What was the walled capital of the ancient Kingdom of Lo in Mustang?",choices:["Jomsom","Lo Manthang","Marpha","Muktinath"],a:"B"},
+      {q:"What sacred river gorge in Mustang is famous for Shaligram fossils?",choices:["Kali Gandaki","Koshi","Karnali","Bagmati"],a:"A"},
+      {q:"The ancient sky caves of Mustang were primarily used for:",choices:["Storing crops","Burials, meditation, and hiding during war","Prison cells","Animal shelters"],a:"B"}
+    ];
+    function initMustangQuiz(){quizQuestionIndex=0;loadQuizQuestion();}
+    function loadQuizQuestion(){
+      const qData=quizQuestions[quizQuestionIndex];
+      document.getElementById('quiz-question-title').innerText=`Question ${quizQuestionIndex+1}/3:\n${qData.q}`;
+      const c=document.getElementById('quiz-choices-container'); c.innerHTML=''; document.getElementById('quiz-error').innerText='';
+      qData.choices.forEach((ch,idx)=>{const l=String.fromCharCode(65+idx),d=document.createElement('div');d.className='choice-item';d.innerText=`${l}) ${ch}`;d.onclick=()=>submitQuizAnswer(l);c.appendChild(d);});
+    }
+    function submitQuizAnswer(choice){
+      const err=document.getElementById('quiz-error');
+      if(choice===quizQuestions[quizQuestionIndex].a){
+        err.style.color='#4dfa62';err.innerText='Correct!';playSound('success');quizQuestionIndex++;
+        if(quizQuestionIndex>=quizQuestions.length) setTimeout(()=>{closeOverlay('modal-checkpoint-2');solveCP(2);giveFragment('frag_b');unlockQuest(3);},1200);
+        else setTimeout(loadQuizQuestion,1200);
+      } else {err.style.color='#ff4d4d';err.innerText='Wrong! Try again.';playSound('failure');}
+    }
+
+    // Keys
+    function handleKeyPickup(){
+      let idx=-1;
+      sprites.forEach((s,i)=>{if(!s.type.startsWith('key')||s.hidden||s.collected)return;if(Math.hypot(s.x-player.x,s.y-player.y)<45)idx=i;});
+      if(idx!==-1){sprites[idx].collected=true;sprites[idx].hidden=true;keysCollected++;playSound('success');showNotif(`Collected Golden Key (${keysCollected}/3)`);
+        if(keysCollected>=3){keysActive=false;solveCP(3);giveFragment('frag_c');unlockQuest(4);}
+      }
+    }
+
+    function solveCP(id){const cp=CHECKPOINTS.find(c=>c.id===id);if(cp)cp.solved=true;const el=document.getElementById(cp?.qid||'');if(el){el.classList.remove('unlocked');el.classList.add('completed');}}
+    function unlockQuest(id){const map={2:'quest-cp2',3:'quest-cp3',4:'quest-final'};const el=document.getElementById(map[id]||'');if(el)el.classList.add('unlocked');showNotif('New Mission Objective Unlocked!');}
+    function giveFragment(fid){const item=FRAGS.find(f=>f.id===fid);if(!item||inventory.find(p=>p.id===fid))return;inventory.push(item);document.getElementById('puzzle-pieces-count').innerText=`${inventory.length}/3`;}
+
+    // Combination
+    function openCombinationModal(){comboSlots=[null,null,null];renderCombination();openOverlay('modal-combination');}
+    function renderCombination(){
+      for(let i=0;i<3;i++){const slot=document.getElementById(`slot-${i}`);slot.innerHTML='';if(comboSlots[i]){const t=document.createElement('div');t.className='fragment-token';t.innerHTML=`<div style="font-size:1.4rem">${comboSlots[i].icon}</div><div>${comboSlots[i].name.split(' ')[1]}</div>`;t.onclick=()=>removeFragment(i);slot.appendChild(t);}}
+      const pool=document.getElementById('fragments-pool-container');pool.innerHTML='';
+      inventory.forEach(item=>{if(comboSlots.includes(item))return;const t=document.createElement('div');t.className='fragment-token';t.innerHTML=`<div style="font-size:1.4rem">${item.icon}</div><div>${item.name.split(' ')[1]}</div>`;t.onclick=()=>placeFragment(item);pool.appendChild(t);});
+      document.getElementById('combo-error').innerText='';
+    }
+    function placeFragment(item){const idx=comboSlots.indexOf(null);if(idx===-1){const e=document.getElementById('combo-error');e.style.color='#ff4d4d';e.innerText='Slots full!';playSound('failure');return;}comboSlots[idx]=item;playSound('tick');renderCombination();}
+    function removeFragment(i){comboSlots[i]=null;playSound('tick');renderCombination();}
+    window.checkCombinationSubmit=function(){
+      const err=document.getElementById('combo-error');
+      if(comboSlots.includes(null)){err.style.color='#ff4d4d';err.innerText='Fill all slots!';playSound('failure');return;}
+      if(comboSlots[0].id==='frag_b'&&comboSlots[1].id==='frag_c'&&comboSlots[2].id==='frag_a'){
+        err.style.color='#4dfa62';err.innerText='✓ SEAL CRACKED!';playSound('success');
+        setTimeout(()=>{closeOverlay('modal-combination');solveCP(4);triggerVictory();},1500);
+      } else {err.style.color='#ff4d4d';err.innerText='✗ Wrong order!';playSound('failure');comboSlots=[null,null,null];renderCombination();}
+    };
+
+    function triggerVictory(){playSound('victory');document.getElementById('quest-final').classList.add('completed');document.getElementById('victory-screen').style.display='flex';if(document.pointerLockElement)document.exitPointerLock();lockPrompt.style.display='none';}
+    function returnToDashboard(){window.location.href=`dashboard.html?earnedGold=250&victory=true`;}
+
+    function showNotif(text){const t=document.createElement('div');t.style.cssText='position:fixed;top:20px;right:20px;background:rgba(197,160,89,0.95);color:#000;padding:12px 25px;border-radius:5px;font-weight:bold;font-size:0.9rem;box-shadow:0 10px 25px rgba(0,0,0,0.5);z-index:10000;';t.innerText=text;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
+
+    function gameLoop(){updateMovementPhysics();updateVehiclesPhysics();renderRaycast3D();renderSprites3D();if(++mmTick%3===0)renderMinimapHUD();checkProximityInteracts();requestAnimationFrame(gameLoop);}
+    renderMinimapHUD();
+    requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
