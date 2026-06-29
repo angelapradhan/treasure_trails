@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Treasure Trails - Expedition Map</title>
-  <meta name="description" content="Choose your region and expedition location to begin your Nepal treasure hunt.">
+  <meta name="description" content="Browse the Nepal treasure hunt trail and choose your next expedition.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
@@ -14,11 +14,20 @@
       --gold-dark: #9e7d3b;
       --gold-light: #e5c382;
       --bg-darker: #080808;
-      --bg-card: #111;
       --border-color: #2a2a2a;
       --text-gray: #aaaaaa;
       --text-light: #e0e0e0;
-      --red-lock: #ff4d4d;
+      --play-green: #5cb85c;
+      --play-green-dark: #449d44;
+      --map-void: #000000;
+      --map-deep: #030810;
+      --map-face: #0a1830;
+      --map-face-hi: #143352;
+      --map-edge: rgba(20, 55, 90, 0.45);
+      --trail-cyan: #00e8ff;
+      --trail-cyan-core: #5ff4ff;
+      --trail-cyan-glow: rgba(0, 232, 255, 0.5);
+      --pin-hot: #ffeb3b;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -30,7 +39,6 @@
       display: flex;
       flex-direction: column;
     }
-    /* ── HEADER ─────────────────────────────────────────────────── */
     header {
       background: #111;
       border-bottom: 2px solid var(--gold);
@@ -77,235 +85,444 @@
       display: flex; align-items: center; gap: 8px;
     }
     .back-btn:hover { background: var(--gold); color: #000; }
-    /* ── SCREENS ─────────────────────────────────────────────────── */
-    .screen {
-      display: none;
+
+    /* ── RPG world map — realistic mountain backdrop ─────────────── */
+    #screen-trail {
       flex: 1;
-      overflow: hidden;
-      flex-direction: column;
-    }
-    .screen.active { display: flex; }
-    /* ── REGION SELECTION SCREEN ─────────────────────────────────── */
-    #screen-regions {
-      padding: 40px 60px;
-      overflow-y: auto;
-      background: linear-gradient(180deg, #090909 0%, #030303 100%);
-      align-items: center;
-    }
-    .region-header {
-      text-align: center;
-      margin-bottom: 40px;
-      width: 100%;
-    }
-    .region-header h1 {
-      font-family: 'Cinzel', serif;
-      font-size: 2.8rem;
-      font-weight: 900;
-      color: #fff;
-      margin-bottom: 12px;
-      letter-spacing: 1.5px;
-    }
-    .region-header p {
-      font-size: 0.95rem;
-      color: var(--text-gray);
-      max-width: 600px;
-      margin: 0 auto;
-      line-height: 1.6;
-    }
-    .regions-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 30px;
-      max-width: 1100px;
-      width: 100%;
-      min-height: 460px;
-    }
-    .region-card {
-      background: #111;
-      border: 1px solid #1a1a1a;
-      border-radius: 12px;
-      overflow: hidden;
-      position: relative;
-      cursor: pointer;
       display: flex;
       flex-direction: column;
-      justify-content: flex-end;
-      padding: 30px 25px;
-      transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-      box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+      overflow: hidden;
+      min-height: 0;
+      background: #050505;
     }
-    .region-card::before {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background-size: cover; background-position: center;
-      transition: all 0.5s ease; opacity: 0.45; z-index: 1;
+    .trail-top-bar {
+      padding: 10px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 5;
+      background: linear-gradient(180deg, rgba(0, 0, 0, 0.88) 0%, transparent 100%);
     }
-    .region-card.himal::before  { background-image: url('https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=600'); }
-    .region-card.pahad::before  { background-image: url('https://images.unsplash.com/photo-1528164344705-47542687000d?q=80&w=600'); }
-    .region-card.terai::before  { background-image: url('https://images.unsplash.com/photo-1589909202802-8f4aadce1849?q=80&w=600'); }
-    .region-card::after {
-      content: '';
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(360deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.5) 45%, transparent 100%);
+    .trail-top-bar h1 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.2rem;
+      font-weight: 900;
+      color: var(--gold-light);
+      letter-spacing: 2px;
+    }
+    .region-banner {
+      font-family: 'Cinzel', serif;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      padding: 5px 14px;
+      border: 1px solid rgba(197, 160, 89, 0.45);
+      border-radius: 3px;
+      background: rgba(0, 0, 0, 0.55);
+    }
+    .trail-scroll-hint {
+      font-size: 0.65rem;
+      color: rgba(255, 255, 255, 0.45);
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .trail-viewport {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      cursor: grab;
+      min-height: 0;
+    }
+    .trail-viewport.dragging { cursor: grabbing; }
+    .trail-scroll {
+      position: absolute;
+      top: 0; left: 0;
+      height: 100%;
+      will-change: transform;
+      transition: transform 0.05s linear;
+    }
+    .trail-scroll.snap { transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1); }
+
+    .trail-bg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .trail-bg-photo {
+      position: absolute;
+      inset: 0;
+      background-image: url('https://images.unsplash.com/photo-1454496522488-786a6393abfe?q=85&w=3200&auto=format&fit=crop');
+      background-size: cover;
+      background-position: center 40%;
+      background-repeat: no-repeat;
+    }
+    .trail-bg-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(0, 0, 0, 0.55) 0%, rgba(0, 0, 0, 0.12) 35%, rgba(0, 0, 0, 0.25) 70%, rgba(0, 0, 0, 0.72) 100%),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.45) 0%, transparent 8%, transparent 92%, rgba(0, 0, 0, 0.45) 100%);
+      z-index: 1;
+    }
+
+    .trail-canvas-wrap {
+      position: relative;
+      height: 100%;
+      min-width: 100%;
+    }
+
+    .trail-route-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
       z-index: 2;
+      overflow: visible;
     }
-    .region-card:hover {
-      transform: translateY(-8px);
-      border-color: rgba(197, 160, 89, 0.4);
-      box-shadow: 0 20px 45px rgba(197, 160, 89, 0.15);
+    .trail-route-svg .route-shadow {
+      fill: none;
+      stroke: rgba(0, 0, 0, 0.45);
+      stroke-width: 10;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
-    .region-card:hover::before { transform: scale(1.08); opacity: 0.6; }
-    .region-card-contents { position: relative; z-index: 3; }
-    .difficulty-badge {
-      display: inline-block;
-      border: 1px solid var(--gold); color: var(--gold);
-      font-size: 0.65rem; font-weight: 800;
-      padding: 3px 8px; border-radius: 3px;
-      text-transform: uppercase; letter-spacing: 1px;
-      margin-bottom: 20px; background: rgba(0,0,0,0.6);
+    .trail-route-svg .route-bed {
+      fill: none;
+      stroke: rgba(90, 70, 45, 0.75);
+      stroke-width: 6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
-    .region-card.himal .difficulty-badge { border-color: #ff4d4d; color: #ff4d4d; }
-    .region-card.pahad .difficulty-badge { border-color: var(--gold); color: var(--gold); }
-    .region-card.terai .difficulty-badge { border-color: #4df3ff; color: #4df3ff; }
-    .region-name {
+    .trail-route-svg .route-core {
+      fill: none;
+      stroke: rgba(255, 248, 220, 0.9);
+      stroke-width: 3;
+      stroke-dasharray: 4 12;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.35));
+    }
+
+    .region-progress {
+      position: absolute;
+      bottom: 16px;
+      right: 20px;
+      z-index: 6;
+      background: rgba(0, 0, 0, 0.78);
+      border: 1px solid rgba(197, 160, 89, 0.45);
+      border-radius: 6px;
+      padding: 10px 16px;
+      min-width: 180px;
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+    }
+    .region-progress .rp-title {
       font-family: 'Cinzel', serif;
-      font-size: 1.8rem; font-weight: 900; color: #fff; margin-bottom: 10px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      color: var(--gold);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 6px;
     }
-    .region-desc {
-      font-size: 0.8rem; color: #bbb; line-height: 1.5; margin-bottom: 25px; font-weight: 300;
+    .region-progress .rp-bar {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 5px;
     }
-    .region-action {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 0.8rem; font-weight: 800; text-transform: uppercase;
-      color: var(--gold); letter-spacing: 1px; transition: color 0.3s ease;
+    .region-progress .rp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold-dark), var(--gold-light));
+      border-radius: 4px;
+      transition: width 0.4s ease;
     }
-    .region-card:hover .region-action { color: #fff; }
-    .region-action span { transition: transform 0.3s ease; }
-    .region-card:hover .region-action span { transform: translateX(5px); }
-    /* ── EXPEDITION SELECTION SCREEN ─────────────────────────────── */
-    #screen-expeditions {
-      background: #080808;
-      overflow-y: auto;
-      padding: 30px 45px;
+    .region-progress .rp-stars {
+      font-size: 0.72rem;
+      color: #ffd700;
+      letter-spacing: 2px;
     }
-    .breadcrumbs {
-      font-size: 0.7rem; font-weight: 800; text-transform: uppercase;
-      letter-spacing: 2px; color: var(--text-gray); margin-bottom: 20px;
-      display: flex; align-items: center; gap: 8px;
+
+    /* RPG level nodes */
+    .trail-nodes {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
     }
-    .breadcrumbs a { color: var(--gold); text-decoration: none; cursor: pointer; }
-    .breadcrumbs a:hover { text-decoration: underline; }
-    .expo-title {
+    .trail-node {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: transform 0.25s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+    .trail-node:hover { transform: translate(-50%, -52%) scale(1.05); }
+    .trail-node.selected { transform: translate(-50%, -54%) scale(1.08); z-index: 6; }
+
+    .level-badge {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 3px solid #b8b8b8;
+      background: linear-gradient(160deg, #3a3a3a 0%, #141414 55%, #0a0a0a 100%);
+      box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.65),
+        inset 0 2px 6px rgba(255, 255, 255, 0.12),
+        inset 0 -3px 6px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-family: 'Cinzel', serif;
-      font-size: 2.2rem; font-weight: 900; color: #fff;
-      margin-bottom: 10px;
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+      position: relative;
     }
-    .expo-desc {
-      font-size: 0.85rem; color: var(--text-gray);
-      margin-bottom: 30px; max-width: 800px; line-height: 1.6;
+    .trail-node.selected .level-badge {
+      border-color: var(--gold);
+      box-shadow:
+        0 0 22px rgba(197, 160, 89, 0.65),
+        0 4px 14px rgba(0, 0, 0, 0.65),
+        inset 0 2px 6px rgba(255, 255, 255, 0.15);
+      animation: levelPulse 2s ease-in-out infinite;
     }
-    /* Sub-map grid */
-    .submaps-row {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 25px;
-      margin-bottom: 25px;
+    @keyframes levelPulse {
+      0%, 100% { box-shadow: 0 0 18px rgba(197, 160, 89, 0.5), 0 4px 14px rgba(0,0,0,0.65); }
+      50% { box-shadow: 0 0 28px rgba(197, 160, 89, 0.85), 0 4px 14px rgba(0,0,0,0.65); }
     }
-    .submap-card {
-      background: #111; border: 1px solid #222; border-radius: 8px;
-      overflow: hidden; display: flex; flex-direction: column;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5); transition: all 0.3s ease;
+    .trail-node.boss .level-badge {
+      width: 68px;
+      height: 68px;
+      border-color: #c0392b;
+      font-size: 0.58rem;
+      letter-spacing: 1px;
+      line-height: 1.1;
+      text-align: center;
+      padding: 0 4px;
     }
-    .submap-card:hover { border-color: rgba(197,160,89,0.3); transform: translateY(-3px); }
-    .submap-img {
-      height: 165px; position: relative;
-      background-size: cover; background-position: center;
+    .trail-node.locked .level-badge {
+      filter: grayscale(0.85) brightness(0.55);
+      border-color: #555;
     }
-    .submap-img::after {
-      content: ''; position: absolute; inset: 0;
-      background: rgba(0,0,0,0.3);
+    .trail-node.completed .level-badge {
+      border-color: #4dfa62;
     }
-    .submap-card.locked-submap .submap-img::after { background: rgba(0,0,0,0.72); }
-    .submap-badge {
-      position: absolute; top: 10px; left: 10px;
-      background: #2b7a2d; color: #fff; font-size: 0.6rem; font-weight: 800;
-      padding: 3px 8px; border-radius: 3px; text-transform: uppercase; z-index: 5;
+    .level-lock {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
     }
-    .submap-card.locked-submap .submap-badge { background: #ff4d4d; }
-    .lock-icon-overlay {
-      display: none;
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%,-50%);
-      width: 40px; height: 40px;
-      background: rgba(0,0,0,0.8); border-radius: 50%;
-      justify-content: center; align-items: center;
-      z-index: 5; border: 1px solid rgba(255,255,255,0.1);
+    .level-stars {
+      font-size: 0.55rem;
+      color: #ffd700;
+      letter-spacing: 2px;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+      min-height: 10px;
     }
-    .submap-card.locked-submap .lock-icon-overlay { display: flex; }
-    .submap-details {
-      padding: 20px; flex: 1;
-      display: flex; flex-direction: column; justify-content: space-between; gap: 15px;
+    .level-stars.empty { color: rgba(255, 255, 255, 0.25); }
+    .node-label {
+      font-family: 'Cinzel', serif;
+      font-size: 0.58rem;
+      font-weight: 800;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      max-width: 100px;
+      text-align: center;
+      line-height: 1.2;
+      padding: 3px 8px;
+      background: rgba(0, 0, 0, 0.72);
+      border: 1px solid rgba(197, 160, 89, 0.35);
+      border-radius: 3px;
+      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
     }
-    .submap-meta h4 { font-size: 1.05rem; color: #fff; margin-bottom: 5px; }
-    .submap-meta p  { font-size: 0.72rem; color: var(--text-gray); margin-bottom: 8px; }
-    .submap-meta span {
-      font-size: 0.7rem; color: var(--gold);
-      display: flex; align-items: center; gap: 5px;
+    .trail-node.selected .node-label {
+      border-color: var(--gold);
+      background: rgba(20, 16, 8, 0.88);
     }
-    .submap-btn {
-      width: 100%; border: none; padding: 10px; border-radius: 4px;
-      font-size: 0.8rem; font-weight: 800; text-transform: uppercase;
-      cursor: pointer; transition: all 0.2s ease;
-      display: flex; justify-content: center; align-items: center; gap: 8px;
+    .level-tag {
+      position: absolute;
+      top: -8px;
+      right: -10px;
+      background: var(--gold);
+      color: #000;
+      font-size: 0.5rem;
+      font-weight: 900;
+      padding: 2px 5px;
+      border-radius: 3px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .submap-btn.play-btn { background: var(--gold); color: #000; }
-    .submap-btn.play-btn:hover { background: var(--gold-light); }
-    .submap-btn.unlock-sub-btn {
-      background: transparent; border: 1px solid var(--gold); color: var(--gold);
+
+    /* Scroll arrows */
+    .trail-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 8;
+      width: 44px; height: 44px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.55);
+      border: 2px solid var(--gold);
+      color: var(--gold);
+      font-size: 1.2rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      backdrop-filter: blur(4px);
     }
-    .submap-btn.unlock-sub-btn:hover { background: var(--gold); color: #000; }
-    /* Forgotten Pass bottom banner */
-    .forgotten-pass-card {
-      background: #111; border: 1px solid #222; border-radius: 8px;
-      overflow: hidden; display: flex; height: 220px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    .trail-arrow:hover { background: var(--gold); color: #000; }
+    .trail-arrow.left { left: 12px; }
+    .trail-arrow.right { right: 12px; }
+    .trail-arrow.hidden { opacity: 0; pointer-events: none; }
+
+    /* Bottom map detail panel */
+    .map-detail-panel {
+      flex-shrink: 0;
+      background: linear-gradient(180deg, rgba(10, 14, 22, 0.98) 0%, rgba(4, 6, 10, 0.99) 100%);
+      border-top: 2px solid rgba(197, 160, 89, 0.55);
+      padding: 14px 24px 16px;
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      box-shadow: 0 -8px 30px rgba(0,0,0,0.6);
+      z-index: 10;
+      min-height: 0;
     }
-    .forgotten-pass-img {
-      flex: 1.2; background-size: cover; background-position: center;
-      position: relative; display: flex; justify-content: center; align-items: center;
+    .detail-thumb {
+      width: 120px; height: 90px;
+      border-radius: 8px;
+      background-size: cover;
+      background-position: center;
+      border: 2px solid rgba(197, 160, 89, 0.45);
+      flex-shrink: 0;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.5);
     }
-    .forgotten-pass-img::after {
-      content: ''; position: absolute; inset: 0; background: rgba(0,0,0,0.7);
+    .detail-info {
+      flex: 1;
+      min-width: 0;
+      overflow: visible;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 2px;
     }
-    .forgotten-pass-lock {
-      z-index: 5; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px;
+    .detail-info h2 {
+      font-family: 'Cinzel', serif;
+      font-size: 1.25rem;
+      font-weight: 900;
+      color: #fff;
+      line-height: 1.2;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .forgotten-pass-lock svg { width: 32px; height: 32px; fill: var(--text-gray); }
-    .req-level-badge {
-      background: rgba(20,20,20,0.9); border: 1px solid #ff4d4d; color: #ff4d4d;
-      padding: 5px 12px; font-size: 0.65rem; font-weight: 800;
-      border-radius: 3px; text-transform: uppercase;
+    .detail-zone {
+      font-size: 0.68rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--gold);
+      line-height: 1.3;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
-    .forgotten-pass-details {
-      flex: 1; padding: 25px; display: flex; flex-direction: column; justify-content: space-between;
+    .detail-meta {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      font-size: 0.78rem;
+      color: var(--text-gray);
     }
-    .forgotten-pass-info h3 {
-      font-size: 1.3rem; color: #fff; margin-bottom: 10px; font-family: 'Cinzel', serif;
+    .detail-meta span { display: flex; align-items: center; gap: 5px; }
+    .diff-stars { color: #ffd700; letter-spacing: 1px; }
+    .detail-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex-shrink: 0;
     }
-    .forgotten-pass-info p { font-size: 0.8rem; color: var(--text-gray); line-height: 1.5; }
-    .forgotten-pass-details button {
-      align-self: flex-start;
-      background: transparent; border: 1px solid var(--gold); color: var(--gold);
-      padding: 8px 18px; font-size: 0.75rem; font-weight: 800; border-radius: 4px;
-      cursor: pointer; text-transform: uppercase;
-      display: flex; align-items: center; gap: 8px; transition: all 0.2s ease;
+    .btn-play {
+      background: linear-gradient(180deg, #6fcf6f 0%, var(--play-green) 50%, var(--play-green-dark) 100%);
+      color: #fff;
+      border: none;
+      border-bottom: 4px solid #357935;
+      padding: 14px 36px;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      box-shadow: 0 6px 0 #2d6b2d, 0 8px 20px rgba(0,0,0,0.35);
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+      min-width: 160px;
     }
-    .forgotten-pass-details button:hover { background: var(--gold); color: #000; }
-    /* ── HUD FOOTER ──────────────────────────────────────────────── */
+    .btn-play:hover { filter: brightness(1.08); }
+    .btn-play:active {
+      transform: translateY(3px);
+      box-shadow: 0 3px 0 #2d6b2d, 0 5px 12px rgba(0,0,0,0.3);
+    }
+    .btn-unlock {
+      background: linear-gradient(180deg, var(--gold-light) 0%, var(--gold) 50%, var(--gold-dark) 100%);
+      color: #000;
+      border: none;
+      border-bottom: 4px solid #6b5018;
+      padding: 14px 28px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      cursor: pointer;
+      font-family: 'Outfit', sans-serif;
+      box-shadow: 0 6px 0 #5a4010, 0 8px 20px rgba(0,0,0,0.35);
+      min-width: 160px;
+    }
+    .btn-unlock:active { transform: translateY(3px); box-shadow: 0 3px 0 #5a4010; }
+    .btn-nav-mini {
+      background: transparent;
+      border: 1px solid #444;
+      color: #888;
+      padding: 6px 14px;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-transform: uppercase;
+    }
+    .btn-nav-mini:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+    .btn-nav-mini:disabled { opacity: 0.35; cursor: default; }
+
     .hud-footer {
-      background: #0d0d0d; border-top: 1px solid #1a1a1a;
-      height: 60px; display: flex; justify-content: space-between;
-      align-items: center; padding: 0 30px; z-index: 10; flex-shrink: 0;
+      background: #0d0d0d;
+      border-top: 1px solid #1a1a1a;
+      height: 50px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 30px;
+      z-index: 10;
+      flex-shrink: 0;
     }
     .footer-left { display: flex; align-items: center; gap: 15px; }
     .footer-left .age-pill {
@@ -316,15 +533,6 @@
       font-size: 0.7rem; color: #666; font-weight: 800;
       letter-spacing: 1px; text-transform: uppercase;
     }
-    .footer-right { display: flex; align-items: center; gap: 15px; }
-    .quick-travel-btn {
-      background: #ebd292; color: #000; border: none;
-      padding: 8px 16px; border-radius: 4px;
-      font-size: 0.7rem; font-weight: 900; cursor: pointer;
-      text-transform: uppercase; letter-spacing: 1px; transition: all 0.2s ease;
-    }
-    .quick-travel-btn:hover { background: var(--gold-light); }
-    /* Notification */
     .game-notification {
       position: fixed; top: 80px; right: 30px;
       background: rgba(197, 160, 89, 0.95); color: #000;
@@ -334,254 +542,536 @@
       transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
     .game-notification.show-notif { transform: translateX(0); }
+
+    @media (max-width: 700px) {
+      header { height: 56px; padding: 0 16px; }
+      .trail-top-bar { padding: 10px 16px 6px; }
+      .trail-top-bar h1 { font-size: 1.1rem; }
+      .trail-scroll-hint { display: none; }
+      .map-detail-panel {
+        flex-wrap: wrap;
+        padding: 12px 16px 14px;
+        gap: 12px;
+      }
+      .detail-thumb { width: 72px; height: 54px; }
+      .detail-info h2 { font-size: 1.05rem; }
+      .detail-meta { display: none; }
+      .detail-actions { width: 100%; flex-direction: row; }
+      .btn-play, .btn-unlock { flex: 1; padding: 12px 16px; font-size: 0.85rem; }
+      .hud-footer { height: 36px; padding: 0 16px; }
+      .region-progress { bottom: 10px; right: 10px; min-width: 140px; padding: 8px 12px; }
+    }
   </style>
 </head>
 <body>
   <div id="notification" class="game-notification"></div>
-  <!-- HEADER -->
+
   <header>
     <div class="logo">Nepal Treasure Hunt</div>
     <div class="header-right">
       <div class="stat-pill">LVL <span id="player-lvl">14</span></div>
       <div class="stat-pill">Gold: <span id="coin-count">1,250</span></div>
-      <button class="back-btn" onclick="goToDashboard()">
-        ← Back to Hub
-      </button>
+      <button class="back-btn" onclick="goToDashboard()">← Back to Hub</button>
     </div>
   </header>
-  <!-- SCREEN 1: REGION SELECTION -->
-  <div id="screen-regions" class="screen active">
-    <div class="region-header">
-      <h1>Select Your Expedition</h1>
-      <p>The treasures of the Himalayas are scattered across three distinct realms. Choose your path wisely, Explorer.</p>
+
+  <div id="screen-trail">
+    <div class="trail-top-bar">
+      <h1>Expedition Trail</h1>
+      <span class="region-banner" id="region-banner">Nepal · Himal Route</span>
+      <span class="trail-scroll-hint">← Drag map →</span>
     </div>
-    <div class="regions-grid">
-      <!-- Himal -->
-      <div class="region-card himal" onclick="openRegion('himal')">
-        <div class="region-card-contents">
-          <div class="difficulty-badge">Hard</div>
-          <h2 class="region-name">Himal Region</h2>
-          <p class="region-desc">Frozen summits and ancient caves. Braving the extreme cold reveals the Lost Crown of the Snow Lion.</p>
-          <div class="region-action">Begin Ascent <span>&rarr;</span></div>
-        </div>
+
+    <div class="trail-viewport" id="trail-viewport">
+      <button class="trail-arrow left hidden" id="arrow-left" aria-label="Scroll left">‹</button>
+      <button class="trail-arrow right" id="arrow-right" aria-label="Scroll right">›</button>
+
+      <div class="region-progress">
+        <div class="rp-title">Region Progress</div>
+        <div class="rp-bar"><div class="rp-fill" id="progress-fill"></div></div>
+        <div class="rp-stars" id="progress-stars">★☆☆ 0 / 18</div>
       </div>
-      <!-- Pahad -->
-      <div class="region-card pahad" onclick="openRegion('pahad')">
-        <div class="region-card-contents">
-          <div class="difficulty-badge">Medium</div>
-          <h2 class="region-name">Pahad Region</h2>
-          <p class="region-desc">The cradle of civilization. Solve riddles within the temple complexes of the Kathmandu Valley.</p>
-          <div class="region-action">Start Exploration <span>&rarr;</span></div>
-        </div>
-      </div>
-      <!-- Terai -->
-      <div class="region-card terai" onclick="openRegion('terai')">
-        <div class="region-card-contents">
-          <div class="difficulty-badge">Easy</div>
-          <h2 class="region-name">Terai Region</h2>
-          <p class="region-desc">Deep jungles and hidden wetlands. Track the legendary Golden Rhino through the mist-shrouded plains.</p>
-          <div class="region-action">Enter Jungle <span>&rarr;</span></div>
+
+      <div class="trail-scroll" id="trail-scroll">
+        <div class="trail-canvas-wrap" id="trail-canvas-wrap">
+          <div class="trail-bg">
+            <div class="trail-bg-photo"></div>
+            <div class="trail-bg-overlay"></div>
+          </div>
+          <svg class="trail-route-svg" id="trail-route-svg" preserveAspectRatio="none">
+            <path class="route-shadow" id="route-shadow"></path>
+            <path class="route-bed" id="route-bed"></path>
+            <path class="route-core" id="route-core"></path>
+          </svg>
+          <div class="trail-nodes" id="trail-nodes"></div>
         </div>
       </div>
     </div>
-  </div>
-  <!-- SCREEN 2: EXPEDITION (SUB-MAP) SELECTION -->
-  <div id="screen-expeditions" class="screen">
-    <div class="breadcrumbs">
-      <a onclick="showRegions()">Regions</a> &gt;
-      <span id="breadcrumb-region" style="color:var(--gold);">Pahad</span>
-    </div>
-    <h1 class="expo-title">Select Your Expedition</h1>
-    <p id="expo-desc" class="expo-desc"></p>
-    <!-- Sub-map cards (populated by JS) -->
-    <div class="submaps-row" id="submaps-container"></div>
-    <!-- Forgotten Pass locked card -->
-    <div class="forgotten-pass-card">
-      <div class="forgotten-pass-img" style="background-image:url('https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=600');">
-        <div class="forgotten-pass-lock">
-          <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-          <div class="req-level-badge">Requires Level 10</div>
+
+    <div class="map-detail-panel" id="map-detail-panel">
+      <div class="detail-thumb" id="detail-thumb"></div>
+      <div class="detail-info">
+        <h2 id="detail-name">Lumbini Garden</h2>
+        <div class="detail-zone" id="detail-zone">Terai · Terai Plains</div>
+        <div class="detail-meta">
+          <span><span class="diff-stars" id="detail-stars">★★☆</span> <span id="detail-diff-label">Easy</span></span>
+          <span>🏆 <span id="detail-treasures">4</span> Treasures</span>
+          <span>⛰ <span id="detail-altitude">150</span>m</span>
+          <span id="detail-status">Ready to play</span>
         </div>
       </div>
-      <div class="forgotten-pass-details">
-        <div class="forgotten-pass-info">
-          <h3>The Forgotten Pass</h3>
-          <p>This region requires advanced elevation training or a priority access pass. High seismic activity reported.</p>
+      <div class="detail-actions">
+        <button class="btn-play" id="btn-primary" onclick="handlePrimaryAction()">▶ Play</button>
+        <div style="display:flex;gap:6px;">
+          <button class="btn-nav-mini" id="btn-prev" onclick="selectAdjacent(-1)">‹ Prev</button>
+          <button class="btn-nav-mini" id="btn-next" onclick="selectAdjacent(1)">Next ›</button>
         </div>
-        <button id="access-pass-btn" onclick="buyAccessPass()">
-          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-          Access Pass &bull; 500 Gold
-        </button>
       </div>
     </div>
   </div>
-  <!-- FOOTER -->
+
   <div class="hud-footer">
     <div class="footer-left">
       <div class="age-pill">12+</div>
       <div class="prod-text">Nepal Treasure Hunt v2.4 Production</div>
     </div>
-    <div class="footer-right">
-      <button class="quick-travel-btn" onclick="enter3DMap('valley_expedition')">Quick Travel</button>
-    </div>
   </div>
+
   <script>
     'use strict';
-    // Read state from localStorage
+
     let state = {
-      coins:    parseInt(localStorage.getItem('nt_coins'))    || 1250,
-      level:    parseInt(localStorage.getItem('nt_level'))    || 14,
+      coins: parseInt(localStorage.getItem('nt_coins')) || 1250,
+      level: parseInt(localStorage.getItem('nt_level')) || 14,
       activeCharacterId: localStorage.getItem('nt_active_char') || 'char_1',
       unlockedMaps: JSON.parse(localStorage.getItem('nt_unlocked_maps')) || ['mustang_pass', 'valley_expedition', 'lumbini_garden'],
-      forgottenPassUnlocked: localStorage.getItem('nt_forgotten_pass') === 'true'
+      forgottenPassUnlocked: localStorage.getItem('nt_forgotten_pass') === 'true',
+      completedMaps: JSON.parse(localStorage.getItem('nt_completed_maps') || '[]')
     };
-    // Get selectedChar from URL param (passed from dashboard)
+
     const urlParams = new URLSearchParams(window.location.search);
     const selectedChar = urlParams.get('selectedChar') || state.activeCharacterId;
-    // Region data
-    const regionsData = {
-      himal: {
-        title: "Himal Region",
-        desc:  "Frozen summits and ancient sky caves. The paths are treacherous, buried deep in snow ridges and hidden gorges.",
-        maps: [
-          { id: "mustang_pass",  name: "Mustang Pass",  difficulty: "Medium", cost: 0,   treasures: 3, img: "https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=400",   file: "mustang.html"   },
-          { id: "gorkha_caves",  name: "Gorkha Caves",  difficulty: "Hard",   cost: 200, treasures: 5, img: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=400",   file: "gorkha.html"    }
-        ]
+
+    const DIFF_STARS = { Easy: '★☆☆', Medium: '★★☆', Hard: '★★★' };
+
+    /* Trail maps sorted low → high altitude */
+    const TRAIL_MAPS = [
+      {
+        id: 'lumbini_garden',
+        name: 'Lumbini Garden',
+        region: 'Terai',
+        zone: 'Terai Plains',
+        altitude: 150,
+        difficulty: 'Easy',
+        cost: 0,
+        treasures: 4,
+        img: 'https://images.unsplash.com/photo-1589909202802-8f4aadce1849?q=80&w=600',
+        file: 'lumbini.html',
+        emoji: '🌿'
       },
-      pahad: {
-        title: "Pahad Region",
-        desc:  "Choose a location to begin your search. Central hills hold ancient secrets beneath terrace farming and forgotten stupas.",
-        maps: [
-          { id: "valley_expedition", name: "Valley Expedition", difficulty: "Medium", cost: 0,   treasures: 4, img: "https://images.unsplash.com/photo-1528164344705-47542687000d?q=80&w=400", file: "valley.html"     },
-          { id: "cloud_monastery",   name: "Cloud Monastery",   difficulty: "Hard",   cost: 200, treasures: 3, img: "https://images.unsplash.com/photo-1605649487212-47bdab064df7?q=80&w=400", file: "monastery.html"  }
-        ]
+      {
+        id: 'valley_expedition',
+        name: 'Valley Expedition',
+        region: 'Valley',
+        zone: 'Kathmandu Valley',
+        altitude: 1400,
+        difficulty: 'Medium',
+        cost: 0,
+        treasures: 4,
+        img: 'https://images.unsplash.com/photo-1528164344705-47542687000d?q=80&w=600',
+        file: 'valley.html',
+        emoji: '🏛️'
       },
-      terai: {
-        title: "Terai Region",
-        desc:  "Misty swamps and tall elephant grass. Overgrown jungles hide the relics of ancient ruins and monasteries.",
-        maps: [
-          { id: "lumbini_garden", name: "Lumbini Garden", difficulty: "Easy", cost: 0, treasures: 4, img: "https://images.unsplash.com/photo-1589909202802-8f4aadce1849?q=80&w=400", file: "lumbini.html" }
-        ]
+      {
+        id: 'mustang_pass',
+        name: 'Mustang Pass',
+        region: 'Himal',
+        zone: 'Himal Foothills',
+        altitude: 2800,
+        difficulty: 'Medium',
+        cost: 0,
+        treasures: 3,
+        img: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?q=80&w=600',
+        file: 'mustang.html',
+        emoji: '🏔️'
+      },
+      {
+        id: 'cloud_monastery',
+        name: 'Cloud Monastery',
+        region: 'Himal',
+        zone: 'Misty Highlands',
+        altitude: 3800,
+        difficulty: 'Hard',
+        cost: 200,
+        treasures: 3,
+        img: 'https://images.unsplash.com/photo-1605649487212-47bdab064df7?q=80&w=600',
+        file: 'monastery.html',
+        emoji: '☁️'
+      },
+      {
+        id: 'gorkha_caves',
+        name: 'Gorkha Caves',
+        region: 'Himal',
+        zone: 'High Himal',
+        altitude: 4500,
+        difficulty: 'Hard',
+        cost: 200,
+        treasures: 5,
+        img: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=600',
+        file: 'gorkha.html',
+        emoji: '🕳️'
+      },
+      {
+        id: 'forgotten_pass',
+        name: 'The Forgotten Pass',
+        region: 'Summit',
+        zone: 'Forbidden Ridge',
+        altitude: 5200,
+        difficulty: 'Hard',
+        cost: 500,
+        treasures: 6,
+        img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?q=80&w=600',
+        file: 'mustang.html',
+        emoji: '⚡',
+        special: true,
+        reqLevel: 10
       }
-    };
-    let activeRegionKey = null;
-    // Update HUD
+    ].sort((a, b) => a.altitude - b.altitude);
+
+    const NODE_LAYOUT = [
+      { x: 0.11, y: 0.76 },
+      { x: 0.27, y: 0.60 },
+      { x: 0.43, y: 0.70 },
+      { x: 0.57, y: 0.52 },
+      { x: 0.73, y: 0.64 },
+      { x: 0.89, y: 0.42 }
+    ];
+    let canvasWidth = 0;
+    let selectedIndex = 0;
+    let scrollX = 0;
+    let isDragging = false;
+    let dragStartX = 0;
+    let scrollStartX = 0;
+
+    function getTrailHeight() {
+      const viewport = document.getElementById('trail-viewport');
+      return Math.max(280, viewport.clientHeight);
+    }
+
+    function getCanvasWidth() {
+      const vp = document.getElementById('trail-viewport');
+      return Math.max(1200, vp.clientWidth * 1.5);
+    }
+
+    function nodePosition(index) {
+      const w = canvasWidth || getCanvasWidth();
+      const h = getTrailHeight();
+      const layout = NODE_LAYOUT[index] || NODE_LAYOUT[0];
+      return { x: layout.x * w, y: layout.y * h };
+    }
+
+    function buildWorldPath() {
+      const pts = TRAIL_MAPS.map((_, i) => nodePosition(i));
+      if (pts.length < 2) return '';
+      let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+      for (let i = 1; i < pts.length; i++) {
+        const prev = pts[i - 1];
+        const curr = pts[i];
+        const cpx = (prev.x + curr.x) / 2;
+        const cpy = (prev.y + curr.y) / 2 + (i % 2 === 0 ? -28 : 28);
+        d += ` Q ${cpx.toFixed(1)} ${cpy.toFixed(1)} ${curr.x.toFixed(1)} ${curr.y.toFixed(1)}`;
+      }
+      return d;
+    }
+
+    function renderRoute() {
+      const d = buildWorldPath();
+      ['route-shadow', 'route-bed', 'route-core'].forEach(id => {
+        document.getElementById(id).setAttribute('d', d);
+      });
+    }
+
+    function starCountForMap(map) {
+      if (!state.completedMaps.includes(map.id)) return 0;
+      if (map.difficulty === 'Hard') return 3;
+      if (map.difficulty === 'Medium') return 2;
+      return 1;
+    }
+
+    function getNodeStarsDisplay(map) {
+      const n = starCountForMap(map);
+      if (n === 0) return { text: '☆☆☆', empty: true };
+      return { text: '★'.repeat(n) + '☆'.repeat(3 - n), empty: false };
+    }
+
+    function updateRegionProgress() {
+      const maxStars = TRAIL_MAPS.length * 3;
+      let earned = 0;
+      TRAIL_MAPS.forEach(m => { earned += starCountForMap(m); });
+      const pct = maxStars > 0 ? (earned / maxStars) * 100 : 0;
+      document.getElementById('progress-fill').style.width = pct + '%';
+      document.getElementById('progress-stars').textContent =
+        `${'★'.repeat(earned)}${'☆'.repeat(Math.max(0, maxStars - earned))}  ${earned} / ${maxStars}`;
+    }
+
+    function renderTrail() {
+      const totalWidth = getCanvasWidth();
+      const trailHeight = getTrailHeight();
+      canvasWidth = totalWidth;
+      const wrap = document.getElementById('trail-canvas-wrap');
+      wrap.style.width = totalWidth + 'px';
+      wrap.style.height = trailHeight + 'px';
+
+      renderRoute();
+      updateRegionProgress();
+
+      const nodesEl = document.getElementById('trail-nodes');
+      nodesEl.innerHTML = '';
+
+      TRAIL_MAPS.forEach((map, i) => {
+        const pos = nodePosition(i);
+        const unlocked = isMapUnlocked(map);
+        const isBoss = !!map.special;
+        const stars = getNodeStarsDisplay(map);
+        const node = document.createElement('div');
+        node.className = 'trail-node'
+          + (unlocked ? '' : ' locked')
+          + (state.completedMaps.includes(map.id) ? ' completed' : '')
+          + (i === selectedIndex ? ' selected' : '')
+          + (isBoss ? ' boss' : '');
+        node.style.left = pos.x + 'px';
+        node.style.top = pos.y + 'px';
+        node.dataset.index = i;
+        node.innerHTML = `
+          <div class="level-badge">
+            ${isBoss ? 'BOSS' : (i + 1)}
+            ${!unlocked ? '<span class="level-lock">🔒</span>' : ''}
+            ${map.cost > 0 && unlocked ? '' : ''}
+          </div>
+          <div class="level-stars${stars.empty ? ' empty' : ''}">${stars.text}</div>
+          <span class="node-label">${map.name}</span>
+        `;
+        node.onclick = () => selectMap(i);
+        nodesEl.appendChild(node);
+      });
+
+      applyScrollTransform(false);
+    }
+
+    function isMapUnlocked(map) {
+      if (map.id === 'forgotten_pass') {
+        return state.forgottenPassUnlocked || state.level >= (map.reqLevel || 10);
+      }
+      return map.cost === 0 || state.unlockedMaps.includes(map.id);
+    }
+
+    function getMapById(id) {
+      return TRAIL_MAPS.find(m => m.id === id);
+    }
+
     function updateHUD() {
       document.getElementById('coin-count').innerText = state.coins.toLocaleString();
       document.getElementById('player-lvl').innerText = state.level;
     }
-    // ── NAVIGATION ────────────────────────────────────────────────
+
     function goToDashboard() {
       window.location.href = 'dashboard.html';
     }
-    function showRegions() {
-      document.getElementById('screen-expeditions').classList.remove('active');
-      document.getElementById('screen-regions').classList.add('active');
-    }
-    function openRegion(regionKey) {
-      activeRegionKey = regionKey;
-      const region = regionsData[regionKey];
-      document.getElementById('breadcrumb-region').innerText = region.title;
-      document.getElementById('expo-desc').innerText = region.desc;
-      document.getElementById('screen-regions').classList.remove('active');
-      document.getElementById('screen-expeditions').classList.add('active');
-      renderExpeditions(region.maps);
-    }
-    // ── RENDER SUB-MAP CARDS ──────────────────────────────────────
-    function renderExpeditions(maps) {
-      const container = document.getElementById('submaps-container');
-      container.innerHTML = '';
-      maps.forEach(map => {
-        const isUnlocked = state.unlockedMaps.includes(map.id);
-        const card = document.createElement('div');
-        card.className = `submap-card ${isUnlocked ? '' : 'locked-submap'}`;
-        const actionBtn = isUnlocked
-          ? `<button class="submap-btn play-btn" onclick="enter3DMap('${map.id}')">▶ Enter Map</button>`
-          : `<button class="submap-btn unlock-sub-btn" onclick="buyMapUnlock('${map.id}', ${map.cost})">
-               🔒 Unlock &bull; ${map.cost} G
-             </button>`;
-        card.innerHTML = `
-          <div class="submap-img" style="background-image:url('${map.img}');">
-            <span class="submap-badge">${isUnlocked ? 'Available' : 'Locked'}</span>
-            <div class="lock-icon-overlay">
-              <svg width="18" height="18" fill="#e0e0e0" viewBox="0 0 24 24">
-                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
-              </svg>
-            </div>
-          </div>
-          <div class="submap-details">
-            <div class="submap-meta">
-              <h4>${map.name}</h4>
-              <p>${map.difficulty} Difficulty</p>
-              <span>🏆 ${map.treasures} Treasures</span>
-            </div>
-            ${actionBtn}
-          </div>
-        `;
-        container.appendChild(card);
+
+    function selectMap(index) {
+      if (index < 0 || index >= TRAIL_MAPS.length) return;
+      selectedIndex = index;
+      document.querySelectorAll('.trail-node').forEach((n, i) => {
+        n.classList.toggle('selected', i === index);
       });
-      // Update forgotten pass button
-      const btn = document.getElementById('access-pass-btn');
-      if (state.forgottenPassUnlocked) {
-        btn.textContent = 'Access Granted ✓';
-        btn.style.cssText = 'background:#1b662f; color:#fff; border-color:#1b662f; cursor:default;';
-        btn.disabled = true;
+      updateDetailPanel();
+      centerOnSelected(true);
+    }
+
+    function selectAdjacent(dir) {
+      selectMap(selectedIndex + dir);
+    }
+
+    function updateDetailPanel() {
+      const map = TRAIL_MAPS[selectedIndex];
+      const unlocked = isMapUnlocked(map);
+      document.getElementById('detail-thumb').style.backgroundImage = `url('${map.img}')`;
+      document.getElementById('detail-zone').innerText = `${map.region} · ${map.zone}`;
+      document.getElementById('region-banner').textContent = `${map.region} · ${map.zone}`;
+      document.getElementById('detail-name').innerText = map.name;
+      document.getElementById('detail-stars').innerText = DIFF_STARS[map.difficulty] || '★★☆';
+      document.getElementById('detail-diff-label').innerText = map.difficulty;
+      document.getElementById('detail-treasures').innerText = map.treasures;
+      document.getElementById('detail-altitude').innerText = map.altitude.toLocaleString();
+
+      const statusEl = document.getElementById('detail-status');
+      const btn = document.getElementById('btn-primary');
+
+      if (unlocked) {
+        statusEl.innerText = state.completedMaps.includes(map.id) ? 'Completed — replay anytime' : 'Ready to play';
+        btn.className = 'btn-play';
+        btn.innerHTML = '▶ Play';
+      } else if (map.special) {
+        statusEl.innerText = `Requires LVL ${map.reqLevel} or Access Pass`;
+        btn.className = 'btn-unlock';
+        btn.innerHTML = `🔒 Unlock · ${map.cost} G`;
       } else {
-        btn.disabled = false;
-        btn.style.cssText = '';
-        btn.innerHTML = `
-          <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-          Access Pass &bull; 500 Gold
-        `;
+        statusEl.innerText = `Locked — ${map.cost} gold to unlock`;
+        btn.className = 'btn-unlock';
+        btn.innerHTML = `🔒 Unlock · ${map.cost} G`;
+      }
+
+      document.getElementById('btn-prev').disabled = selectedIndex === 0;
+      document.getElementById('btn-next').disabled = selectedIndex === TRAIL_MAPS.length - 1;
+    }
+
+    function handlePrimaryAction() {
+      const map = TRAIL_MAPS[selectedIndex];
+      if (isMapUnlocked(map)) {
+        enterMap(map.id);
+      } else {
+        buyMapUnlock(map.id, map.cost, map.special);
       }
     }
-    // ── UNLOCK / PURCHASE ─────────────────────────────────────────
-    function buyMapUnlock(mapId, cost) {
+
+    function enterMap(mapId) {
+      const map = getMapById(mapId);
+      if (!map) return;
+      window.location.href = `${map.file}?selectedChar=${selectedChar}`;
+    }
+
+    function buyMapUnlock(mapId, cost, isSpecial) {
+      if (mapId === 'forgotten_pass') {
+        if (state.level >= 10) {
+          state.forgottenPassUnlocked = true;
+          localStorage.setItem('nt_forgotten_pass', 'true');
+          renderTrail();
+          updateDetailPanel();
+          showNotif('Summit access granted!');
+          return;
+        }
+      }
       if (state.coins >= cost) {
         state.coins -= cost;
-        state.unlockedMaps.push(mapId);
+        if (mapId === 'forgotten_pass') {
+          state.forgottenPassUnlocked = true;
+          localStorage.setItem('nt_forgotten_pass', 'true');
+        } else {
+          state.unlockedMaps.push(mapId);
+          localStorage.setItem('nt_unlocked_maps', JSON.stringify(state.unlockedMaps));
+        }
         localStorage.setItem('nt_coins', state.coins);
-        localStorage.setItem('nt_unlocked_maps', JSON.stringify(state.unlockedMaps));
         updateHUD();
-        openRegion(activeRegionKey); // refresh
-        showNotif('Expedition Unlocked!');
+        renderTrail();
+        updateDetailPanel();
+        showNotif('Trail unlocked!');
       } else {
-        alert('Inadequate gold! Complete active maps to earn more.');
+        alert('Not enough gold! Complete maps to earn more.');
       }
     }
-    function buyAccessPass() {
-      const cost = 500;
-      if (state.coins >= cost) {
-        state.coins -= cost;
-        state.forgottenPassUnlocked = true;
-        localStorage.setItem('nt_coins', state.coins);
-        localStorage.setItem('nt_forgotten_pass', 'true');
-        updateHUD();
-        openRegion(activeRegionKey);
-        showNotif('Access Pass Acquired!');
-      } else {
-        alert('Inadequate gold to purchase the access pass.');
-      }
-    }
-    // ── ENTER 3D MAP ──────────────────────────────────────────────
-    function enter3DMap(mapId) {
-      // Find the file for this map
-      let file = 'valley.html';
-      for (const rk of Object.keys(regionsData)) {
-        const found = regionsData[rk].maps.find(m => m.id === mapId);
-        if (found) { file = found.file; break; }
-      }
-      window.location.href = `${file}?selectedChar=${selectedChar}`;
-    }
-    // ── NOTIFICATION ──────────────────────────────────────────────
+
     function showNotif(text) {
       const el = document.getElementById('notification');
       el.textContent = text;
       el.classList.add('show-notif');
       setTimeout(() => el.classList.remove('show-notif'), 3000);
     }
-    // ── INIT ──────────────────────────────────────────────────────
-    window.onload = updateHUD;
+
+    /* Horizontal scroll / drag (HCR map browse) */
+    function getMaxScroll() {
+      const viewport = document.getElementById('trail-viewport');
+      const wrap = document.getElementById('trail-canvas-wrap');
+      return Math.max(0, wrap.offsetWidth - viewport.clientWidth);
+    }
+
+    function clampScroll(x) {
+      return Math.max(-getMaxScroll(), Math.min(0, x));
+    }
+
+    function applyScrollTransform(animate) {
+      const el = document.getElementById('trail-scroll');
+      el.classList.toggle('snap', animate);
+      el.style.transform = `translateX(${scrollX}px)`;
+      updateArrows();
+    }
+
+    function centerOnSelected(animate) {
+      const viewport = document.getElementById('trail-viewport');
+      const pos = nodePosition(selectedIndex);
+      const target = clampScroll(-(pos.x - viewport.clientWidth / 2));
+      scrollX = target;
+      applyScrollTransform(animate);
+    }
+
+    function updateArrows() {
+      const max = getMaxScroll();
+      document.getElementById('arrow-left').classList.toggle('hidden', scrollX >= -5);
+      document.getElementById('arrow-right').classList.toggle('hidden', scrollX <= -(max - 5));
+    }
+
+    function setupScrollInteraction() {
+      const viewport = document.getElementById('trail-viewport');
+
+      viewport.addEventListener('mousedown', e => {
+        if (e.target.closest('.trail-node, .trail-arrow, .btn-play, .btn-unlock')) return;
+        isDragging = true;
+        dragStartX = e.clientX;
+        scrollStartX = scrollX;
+        viewport.classList.add('dragging');
+        document.getElementById('trail-scroll').classList.remove('snap');
+      });
+      window.addEventListener('mousemove', e => {
+        if (!isDragging) return;
+        scrollX = clampScroll(scrollStartX + (e.clientX - dragStartX));
+        applyScrollTransform(false);
+      });
+      window.addEventListener('mouseup', () => {
+        isDragging = false;
+        viewport.classList.remove('dragging');
+      });
+
+      viewport.addEventListener('touchstart', e => {
+        if (e.target.closest('.trail-node, .trail-arrow')) return;
+        isDragging = true;
+        dragStartX = e.touches[0].clientX;
+        scrollStartX = scrollX;
+        document.getElementById('trail-scroll').classList.remove('snap');
+      }, { passive: true });
+      viewport.addEventListener('touchmove', e => {
+        if (!isDragging) return;
+        scrollX = clampScroll(scrollStartX + (e.touches[0].clientX - dragStartX));
+        applyScrollTransform(false);
+      }, { passive: true });
+      viewport.addEventListener('touchend', () => { isDragging = false; });
+
+      viewport.addEventListener('wheel', e => {
+        e.preventDefault();
+        scrollX = clampScroll(scrollX - e.deltaY * 0.8 - e.deltaX * 0.8);
+        applyScrollTransform(false);
+      }, { passive: false });
+
+      document.getElementById('arrow-left').onclick = () => {
+        scrollX = clampScroll(scrollX + 280);
+        applyScrollTransform(true);
+      };
+      document.getElementById('arrow-right').onclick = () => {
+        scrollX = clampScroll(scrollX - 280);
+        applyScrollTransform(true);
+      };
+
+      window.addEventListener('resize', () => {
+        renderTrail();
+        centerOnSelected(false);
+      });
+    }
+
+    window.onload = function () {
+      updateHUD();
+      renderTrail();
+      const firstUnlocked = TRAIL_MAPS.findIndex(m => isMapUnlocked(m));
+      selectMap(firstUnlocked >= 0 ? firstUnlocked : 0);
+      setupScrollInteraction();
+    };
   </script>
 </body>
 </html>
