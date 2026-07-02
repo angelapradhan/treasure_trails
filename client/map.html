@@ -569,8 +569,8 @@
   <header>
     <div class="logo">Nepal Treasure Hunt</div>
     <div class="header-right">
-      <div class="stat-pill">LVL <span id="player-lvl">14</span></div>
-      <div class="stat-pill">Gold: <span id="coin-count">1,250</span></div>
+      <div class="stat-pill">LVL <span id="player-lvl">0</span></div>
+<div class="stat-pill">Gold: <span id="coin-count">500</span></div>
       <button class="back-btn" onclick="goToDashboard()">← Back to Hub</button>
     </div>
   </header>
@@ -641,8 +641,8 @@
     'use strict';
 
     let state = {
-      coins: parseInt(localStorage.getItem('nt_coins')) || 1250,
-      level: parseInt(localStorage.getItem('nt_level')) || 14,
+  coins: parseInt(localStorage.getItem('nt_coins')) || 500,
+  level: parseInt(localStorage.getItem('nt_level')) || 0,
       activeCharacterId: localStorage.getItem('nt_active_char') || 'char_1',
       unlockedMaps: JSON.parse(localStorage.getItem('nt_unlocked_maps')) || ['mustang_pass', 'valley_expedition', 'lumbini_garden'],
       forgottenPassUnlocked: localStorage.getItem('nt_forgotten_pass') === 'true',
