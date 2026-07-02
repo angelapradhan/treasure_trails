@@ -7,7 +7,8 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:#000;overflow:hidden;width:100vw;height:100vh;touch-action:none;}
-canvas{display:block;position:fixed;top:0;left:0;width:100%;height:100%;}
+canvas{display:block;}
+#gc,#intro-canvas{position:fixed;top:0;left:0;width:100%;height:100%;}
 #ui{position:fixed;top:0;left:0;right:0;z-index:10;pointer-events:none;}
 #intro{position:fixed;inset:0;z-index:50;background:#000;}
 #intro-canvas{width:100%;height:100%;display:block;}
@@ -18,11 +19,32 @@ canvas{display:block;position:fixed;top:0;left:0;width:100%;height:100%;}
 @keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
 .intro-title{position:absolute;top:80px;left:0;right:0;text-align:center;font-family:Georgia,serif;font-size:36px;font-weight:bold;letter-spacing:10px;text-transform:uppercase;color:#c8a46a;text-shadow:0 0 40px rgba(200,164,106,.8);opacity:0;animation:fadeUp 1.5s ease .3s forwards;}
 #gameover{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.9);display:none;flex-direction:column;justify-content:center;align-items:center;gap:16px;}
+#gamewin{position:fixed;inset:0;z-index:45;background:radial-gradient(circle,rgba(30,22,8,.95),rgba(0,0,0,.97));display:none;flex-direction:column;justify-content:center;align-items:center;gap:16px;}
+.game-notif{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:rgba(10,8,4,.92);border:1px solid rgba(200,164,106,.6);color:#f0c840;font-family:Arial,sans-serif;font-size:13px;font-weight:bold;letter-spacing:.5px;padding:10px 20px;border-radius:6px;z-index:70;box-shadow:0 6px 24px rgba(0,0,0,.5);opacity:1;transition:opacity .5s;pointer-events:none;text-align:center;max-width:80vw;}
 #winpanel{position:fixed;inset:0;z-index:40;background:rgba(0,0,0,.88);display:none;flex-direction:column;justify-content:center;align-items:center;gap:16px;}
 .ov-title{font-family:Georgia,serif;font-size:40px;font-weight:bold;letter-spacing:4px;}
 .ov-sub{color:#888;font-family:Arial,sans-serif;font-size:13px;letter-spacing:2px;}
 .ov-btn{background:linear-gradient(135deg,#c8a46a,#7a5820);color:#000;border:none;padding:14px 50px;font-size:14px;font-weight:bold;letter-spacing:3px;text-transform:uppercase;cursor:pointer;border-radius:3px;font-family:Arial,sans-serif;margin-top:8px;box-shadow:0 6px 24px rgba(200,164,106,.4);}
 #flash{position:fixed;inset:0;background:rgba(200,0,0,.4);z-index:35;opacity:0;pointer-events:none;transition:opacity .08s;}
+#puzzle{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.86);display:none;flex-direction:column;justify-content:center;align-items:center;}
+.puzzle-card{background:#0d0c0a;border:1px solid rgba(200,164,106,.55);border-radius:10px;padding:26px 26px 30px;max-width:420px;width:88vw;text-align:center;box-shadow:0 10px 50px rgba(0,0,0,.6);}
+.puzzle-title{font-family:Georgia,serif;font-weight:bold;letter-spacing:2px;color:#c8a46a;font-size:22px;margin-bottom:14px;}
+.puzzle-desc{color:#a8a8a8;font-family:Arial,sans-serif;font-size:13px;line-height:1.6;margin-bottom:14px;}
+.jigsaw-container{display:flex;flex-direction:column;align-items:center;gap:15px;margin:10px 0;}
+#jigsaw-canvas{width:240px;height:240px;position:static;top:auto;left:auto;border:2px solid #c8a46a;cursor:pointer;background:#08080c;}
+.jigsaw-timer{font-size:1.2rem;font-weight:800;color:#c0392b;text-align:center;letter-spacing:1px;}
+.puzzle-msg{margin-top:14px;font-family:Arial,sans-serif;font-size:13px;letter-spacing:1px;color:#5fae5f;min-height:18px;}
+.stageclear-toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);z-index:40;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s;}
+.stageclear-toast.show{opacity:1;}
+#wheelPanel{position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.88);display:none;flex-direction:column;justify-content:center;align-items:center;}
+.wheel-card{background:#0d0c0a;border:1px solid rgba(200,164,106,.55);border-radius:10px;padding:24px 24px 30px;max-width:380px;width:88vw;text-align:center;box-shadow:0 10px 50px rgba(0,0,0,.6);}
+.wheel-title{font-family:Georgia,serif;font-weight:bold;letter-spacing:2px;color:#f0c840;font-size:22px;margin-bottom:8px;text-shadow:0 0 16px rgba(240,200,64,.5);}
+.wheel-desc{color:#a8a8a8;font-family:Arial,sans-serif;font-size:13px;line-height:1.5;margin-bottom:16px;}
+.wheel-wrap{position:relative;width:250px;height:250px;margin:0 auto 18px;}
+.wheel-svg{width:100%;height:100%;display:block;filter:drop-shadow(0 4px 16px rgba(0,0,0,.6));transform:rotate(0deg);}
+.wheel-pointer{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:26px;color:#f0c840;z-index:3;text-shadow:0 2px 4px rgba(0,0,0,.7);}
+.wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#2a2a2a,#0c0c0c);border:2px solid #c8a030;display:flex;align-items:center;justify-content:center;font-size:20px;z-index:2;box-shadow:0 0 14px rgba(240,200,64,.5);}
+.wheel-msg{margin-top:6px;font-family:Arial,sans-serif;font-size:15px;letter-spacing:1px;color:#f0c840;min-height:20px;font-weight:bold;}
 </style>
 </head>
 <body>
@@ -54,16 +76,53 @@ canvas{display:block;position:fixed;top:0;left:0;width:100%;height:100%;}
   <button class="ov-btn" onclick="restartGame()">TRY AGAIN</button>
 </div>
 
-<!-- WIN -->
-<div id="winpanel">
+<!-- FINAL VICTORY (only triggered by completing the Lucky Wheel on the last stage) -->
+<div id="gamewin">
+  <div class="ov-title" style="color:#f0c840;">TOMB CONQUERED!</div>
+  <div class="ov-sub">You spun the Lucky Wheel and claimed the ancient treasure</div>
+  <div style="color:#f0c040;font-family:Arial,sans-serif;font-size:24px;font-weight:bold;margin:10px 0;">🪙 <span id="finalcoins">0</span> TOTAL COINS</div>
+  <div class="ov-sub" style="margin-top:6px;">Returning to the map...</div>
+</div>
+
+<!-- STAGE CLEAR (auto-advances, no button) -->
+<div id="winpanel" class="stageclear-toast">
   <div class="ov-title" style="color:#c8a46a;">STAGE CLEAR!</div>
   <div class="ov-sub">The ancient gate yields before you</div>
   <div style="color:#f0c040;font-family:Arial,sans-serif;font-size:22px;font-weight:bold;margin:6px 0;">+ <span id="wcoins">0</span> COINS</div>
-  <button class="ov-btn" onclick="nextStage()">CONTINUE →</button>
 </div>
+
+<!-- PUZZLE (Muktinath Jigsaw Seal) -->
+<div id="puzzle">
+  <div class="puzzle-card">
+    <div class="puzzle-title">MUKTINATH JIGSAW SEAL</div>
+    <div class="puzzle-desc">Reconstruct the Muktinath Temple image (3x3 grid)<br>by clicking tiles to swap. Solve before time expires!</div>
+    <div class="jigsaw-container">
+      <div class="jigsaw-timer" id="jigsaw-timer-display">30s</div>
+      <canvas id="jigsaw-canvas" width="240" height="240"></canvas>
+    </div>
+    <div class="puzzle-msg" id="jigsaw-status"></div>
+  </div>
+</div>
+
+<!-- LUCKY WHEEL (stage 4 treasure seal) -->
+<div id="wheelPanel">
+  <div class="wheel-card">
+    <div class="wheel-title">LUCKY WHEEL</div>
+    <div class="wheel-desc">You found the ancient seal! Spin the wheel to claim your treasure — the multiplier decides your coin haul.</div>
+    <div class="wheel-wrap">
+      <div class="wheel-pointer">▼</div>
+      <svg id="wheelSvg" viewBox="0 0 300 300" class="wheel-svg"></svg>
+      <div class="wheel-hub">☠</div>
+    </div>
+    <button class="ov-btn" id="wheelSpinBtn" onclick="spinWheel()">SPIN</button>
+    <div class="wheel-msg" id="wheelMsg"></div>
+  </div>
+</div>
+
 
 <script>
 'use strict';
+
 // ═══════════════════════════════════════════════════════════════
 //  AUDIO
 // ═══════════════════════════════════════════════════════════════
@@ -192,6 +251,69 @@ function playWin(){
   });
 }
 
+function playShoot(){
+  ra();const t=AC.currentTime;
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.connect(g);g.connect(AC.destination);o.type='square';
+  o.frequency.setValueAtTime(900,t);o.frequency.exponentialRampToValueAtTime(300,t+.08);
+  g.gain.setValueAtTime(.12,t);g.gain.exponentialRampToValueAtTime(.001,t+.1);
+  o.start(t);o.stop(t+.12);
+}
+
+function playCrabHit(){
+  ra();const t=AC.currentTime;
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.connect(g);g.connect(AC.destination);o.type='triangle';
+  o.frequency.setValueAtTime(260,t);o.frequency.exponentialRampToValueAtTime(120,t+.09);
+  g.gain.setValueAtTime(.2,t);g.gain.exponentialRampToValueAtTime(.001,t+.1);
+  o.start(t);o.stop(t+.12);
+}
+
+function playEnemyDeath(){
+  ra();const t=AC.currentTime;
+  [180,120,80].forEach((f,i)=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.connect(g);g.connect(AC.destination);o.type='sawtooth';
+    o.frequency.setValueAtTime(f,t+i*.05);
+    g.gain.setValueAtTime(.18,t+i*.05);g.gain.exponentialRampToValueAtTime(.001,t+i*.05+.18);
+    o.start(t+i*.05);o.stop(t+i*.05+.2);
+  });
+}
+
+function playCoinPickup(){
+  ra();const t=AC.currentTime;
+  [880,1320].forEach((f,i)=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.connect(g);g.connect(AC.destination);o.type='sine';
+    o.frequency.setValueAtTime(f,t+i*.05);
+    g.gain.setValueAtTime(.15,t+i*.05);g.gain.exponentialRampToValueAtTime(.001,t+i*.05+.15);
+    o.start(t+i*.05);o.stop(t+i*.05+.18);
+  });
+}
+
+function playWheelSpin(){
+  ra();const t=AC.currentTime;
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.connect(g);g.connect(AC.destination);o.type='square';
+  for(let i=0;i<14;i++){
+    const st=t+i*i*.012;
+    g.gain.setValueAtTime(.08,st);g.gain.exponentialRampToValueAtTime(.001,st+.04);
+  }
+  o.frequency.setValueAtTime(500,t);
+  o.start(t);o.stop(t+2.2);
+}
+
+function playWheelWin(){
+  ra();const t=AC.currentTime;
+  [660,880,1100,1320,1760].forEach((f,i)=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.connect(g);g.connect(AC.destination);o.type='sine';
+    o.frequency.setValueAtTime(f,t+i*.09);
+    g.gain.setValueAtTime(.16,t+i*.09);g.gain.exponentialRampToValueAtTime(.001,t+i*.09+.5);
+    o.start(t+i*.09);o.stop(t+i*.09+.55);
+  });
+}
+
 // ═══════════════════════════════════════════════════════════════
 //  INTRO ANIMATION
 // ═══════════════════════════════════════════════════════════════
@@ -262,23 +384,36 @@ let G={};
 function initG(){
   G={
     lives:3, maxHp:500, hp:500,
-    coins:0, stage:0, maxStage:20, level:1,
+    coins:0, stage:1, maxStage:4, level:1,
+    hasStage2Key:false, sealLockedNotified:false,
     player:{x:0,y:0,w:26,h:32,spd:170,inv:0,animT:0,dir:0},
     rocks:[],
     warnings:[],
     particles:[],
+    bullets:[],
+    enemies:[],
+    pickups:[],
     gateOpen:false,gateAnim:0,gateOpened:false,
     cleared:false,
     rockTimer:0,rockInt:2.2,
+    shootTimer:0,
+    stageType:'rocks',
     scrollY:0,
-    arrows:[{alpha:0,y:0}]
+    arrows:[{alpha:0,y:0}],
+    keyRequired:false,keyCollected:false,chest:null,puzzleOpen:false,
+    seal:null,wheelOpen:false
   };
 }
 
 function initStage(){
-  G.cleared=false;G.rocks=[];G.warnings=[];G.particles=[];
+  G.cleared=false;G.rocks=[];G.warnings=[];G.particles=[];G.bullets=[];G.enemies=[];G.pickups=[];
   G.gateOpen=false;G.gateAnim=0;G.gateOpened=false;
   G.rockTimer=0;G.rockInt=Math.max(.9,2.2-G.stage*.04);
+  G.shootTimer=0;
+  G.keyCollected=false;G.chest=null;G.puzzleOpen=false;
+  G.seal=null;G.wheelOpen=false;G.sealLockedNotified=false;
+  // Odd stages (1,3,5) = falling-rock corridor. Even stages (2,4) = crab combat.
+  G.stageType=(G.stage%2===0)?'combat':'rocks';
   // corridor layout
   G.cW=Math.round(W*.42);  // corridor width
   G.cX=W/2;               // corridor center x
@@ -290,7 +425,283 @@ function initStage(){
   G.gateY=Math.round(H*.14);
   G.gateH=80;
   G.scrollY=0;
+  if(G.stageType==='combat'){
+    // combat stages: one crab carries the key, gate stays locked until it's collected
+    G.keyRequired=true;
+    spawnCrabs();
+  }else{
+    // rock stages (after the tutorial stage) hide a chest with a puzzle that yields the key
+    G.keyRequired=(G.stage>1);
+    if(G.keyRequired){
+      G.chest={x:G.cX,y:H*0.5,opened:false};
+    }
+  }
+  // Stage 4: the Lucky Wheel treasure seal — a bonus prize, not required to progress
+  if(G.stage===4){
+    G.seal={x:G.cX-G.cW*0.22,y:H*0.62,collected:false};
+  }
   updateHUD();
+}
+
+function spawnCrabs(){
+  const count=3+Math.floor(G.stage/2);
+  const half=G.cW/2-30;
+  for(let i=0;i<count;i++){
+    const ex=G.cX+(Math.random()-.5)*half*1.7;
+    const ey=G.gateY+G.gateH+70+Math.random()*(H*0.38);
+    G.enemies.push({
+      x:ex,y:ey,
+      hp:60+G.stage*5,maxHp:60+G.stage*5,
+      sz:26,
+      wobble:Math.random()*Math.PI*2,
+      spd:20+Math.random()*15,
+      vx:(Math.random()<0.5?-1:1),
+      hasKey:false
+    });
+  }
+  if(G.keyRequired && G.enemies.length){
+    G.enemies[Math.floor(Math.random()*G.enemies.length)].hasKey=true;
+  }
+}
+
+function fireBullet(){
+  const p=G.player;
+  let tx=0,ty=-1,nearest=null,nd=Infinity;
+  G.enemies.forEach(en=>{
+    const dx=en.x-p.x, dy=en.y-p.y, d=dx*dx+dy*dy;
+    if(d<nd){nd=d;nearest=en;}
+  });
+  if(nearest){
+    const dx=nearest.x-p.x, dy=nearest.y-p.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+    tx=dx/d; ty=dy/d;
+  }
+  G.bullets.push({x:p.x,y:p.y-20,vx:tx*420,vy:ty*420,life:1.2});
+  playShoot();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MUKTINATH JIGSAW SEAL (chest puzzle) — canvas-based jigsaw
+// ═══════════════════════════════════════════════════════════════
+let jigsawTimerVal=30, jigsawTimerInterval=null, jigsawTiles=[], jigsawSelectedIdx=null;
+const pieceSize=80;
+let jigsawCanvas=null, jigsawCtx=null;
+const offscreenImg=document.createElement('canvas'); offscreenImg.width=240; offscreenImg.height=240;
+const oCtx=offscreenImg.getContext('2d');
+oCtx.fillStyle='#1c0f05'; oCtx.fillRect(0,0,240,240);
+oCtx.fillStyle='#ff7a3d'; oCtx.fillRect(20,180,200,60);
+oCtx.fillStyle='#8b2b2b'; oCtx.fillRect(60,100,120,80);
+oCtx.fillStyle='#c5a059'; oCtx.fillRect(110,120,20,60);
+oCtx.fillStyle='#c5a059'; oCtx.beginPath(); oCtx.moveTo(40,100); oCtx.lineTo(200,100); oCtx.lineTo(120,60); oCtx.closePath(); oCtx.fill();
+oCtx.fillStyle='#ffd700'; oCtx.fillRect(115,20,10,40); oCtx.beginPath(); oCtx.moveTo(105,30); oCtx.lineTo(135,30); oCtx.lineTo(120,10); oCtx.closePath(); oCtx.fill();
+oCtx.fillStyle='#b08b46'; for(let i=0;i<8;i++) oCtx.fillRect(70+i*13,160,6,8);
+
+function openPuzzle(){
+  G.puzzleOpen=true;
+  document.getElementById('puzzle').style.display='flex';
+  if(!jigsawCanvas){
+    jigsawCanvas=document.getElementById('jigsaw-canvas');
+    jigsawCtx=jigsawCanvas.getContext('2d');
+    jigsawCanvas.onclick=function(e){
+      const r=jigsawCanvas.getBoundingClientRect();
+      const clicked=Math.floor((e.clientY-r.top)/pieceSize)*3+Math.floor((e.clientX-r.left)/pieceSize);
+      if(jigsawSelectedIdx===null){
+        jigsawSelectedIdx=clicked;
+      }else{
+        [jigsawTiles[jigsawSelectedIdx],jigsawTiles[clicked]]=[jigsawTiles[clicked],jigsawTiles[jigsawSelectedIdx]];
+        jigsawSelectedIdx=null;
+        renderJigsawCanvas();
+        checkJigsawSolved();
+        return;
+      }
+      renderJigsawCanvas();
+    };
+  }
+  initJigsawPuzzle();
+}
+
+function initJigsawPuzzle(){
+  jigsawTimerVal=30;
+  document.getElementById('jigsaw-timer-display').textContent=jigsawTimerVal+'s';
+  document.getElementById('jigsaw-timer-display').style.color='#c0392b';
+  document.getElementById('jigsaw-status').textContent='';
+  jigsawSelectedIdx=null;
+  jigsawTiles=[]; for(let i=0;i<9;i++) jigsawTiles.push(i);
+  do{
+    for(let i=jigsawTiles.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[jigsawTiles[i],jigsawTiles[j]]=[jigsawTiles[j],jigsawTiles[i]];}
+  }while(jigsawTiles.every((v,i)=>v===i));
+  renderJigsawCanvas();
+  if(jigsawTimerInterval) clearInterval(jigsawTimerInterval);
+  jigsawTimerInterval=setInterval(()=>{
+    jigsawTimerVal--;
+    document.getElementById('jigsaw-timer-display').textContent=jigsawTimerVal+'s';
+    if(jigsawTimerVal<=0){ clearInterval(jigsawTimerInterval); handleJigsawFailure(); }
+  },1000);
+}
+
+function renderJigsawCanvas(){
+  if(!jigsawCtx)return;
+  jigsawCtx.clearRect(0,0,240,240);
+  for(let i=0;i<9;i++){
+    const pi=jigsawTiles[i], row=Math.floor(i/3), col=i%3;
+    jigsawCtx.drawImage(offscreenImg,(pi%3)*pieceSize,Math.floor(pi/3)*pieceSize,pieceSize,pieceSize,col*pieceSize,row*pieceSize,pieceSize,pieceSize);
+    jigsawCtx.strokeStyle='rgba(197,160,89,0.4)'; jigsawCtx.strokeRect(col*pieceSize,row*pieceSize,pieceSize,pieceSize);
+    if(jigsawSelectedIdx===i){ jigsawCtx.fillStyle='rgba(255,255,255,0.28)'; jigsawCtx.fillRect(col*pieceSize,row*pieceSize,pieceSize,pieceSize); }
+  }
+}
+
+let tileBitmaps=null;
+function buildTileBitmaps(){
+  if(tileBitmaps)return;
+  tileBitmaps=[];
+  const tmp=document.createElement('canvas');tmp.width=pieceSize;tmp.height=pieceSize;
+  const tctx=tmp.getContext('2d');
+  for(let i=0;i<9;i++){
+    const col=i%3, row=Math.floor(i/3);
+    tctx.clearRect(0,0,pieceSize,pieceSize);
+    tctx.drawImage(offscreenImg,col*pieceSize,row*pieceSize,pieceSize,pieceSize,0,0,pieceSize,pieceSize);
+    tileBitmaps.push(tctx.getImageData(0,0,pieceSize,pieceSize).data);
+  }
+}
+function bitmapsEqual(a,b){
+  if(a.length!==b.length)return false;
+  for(let i=0;i<a.length;i+=8){ if(a[i]!==b[i]||a[i+1]!==b[i+1]||a[i+2]!==b[i+2])return false; }
+  return true;
+}
+
+function checkJigsawSolved(){
+  buildTileBitmaps();
+  let solved=true;
+  for(let i=0;i<9;i++){
+    if(!bitmapsEqual(tileBitmaps[jigsawTiles[i]],tileBitmaps[i])){ solved=false; break; }
+  }
+  if(solved){
+    clearInterval(jigsawTimerInterval);
+    document.getElementById('jigsaw-status').style.color='#5fae5f';
+    document.getElementById('jigsaw-status').textContent='✓ Seal Unlocked!';
+    playGateOpen();
+    setTimeout(()=>{
+      document.getElementById('puzzle').style.display='none';
+      G.puzzleOpen=false;
+      G.keyCollected=true;
+      if(G.chest) G.chest.opened=true;
+    },1200);
+  }
+}
+
+function handleJigsawFailure(){
+  document.getElementById('jigsaw-timer-display').style.color='#888';
+  document.getElementById('jigsaw-status').style.color='#c0392b';
+  document.getElementById('jigsaw-status').textContent='Time expired! Lost 1 life. Retry...';
+  hitPlayer();
+  setTimeout(()=>{
+    if(G.hp>0 && G.lives>0){
+      initJigsawPuzzle();
+    }else{
+      document.getElementById('puzzle').style.display='none';
+      G.puzzleOpen=false;
+      G.player.y+=44;
+    }
+  },1500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  LUCKY WHEEL (stage 4 treasure seal — spin for a coin multiplier)
+// ═══════════════════════════════════════════════════════════════
+const wheelSegments=[
+  {v:250,c:'#7c3fa0'},{v:200,c:'#1f5f75'},{v:225,c:'#245e78'},{v:250,c:'#7c3fa0'},
+  {v:175,c:'#1f5f75'},{v:225,c:'#245e78'},{v:200,c:'#1f5f75'},{v:175,c:'#245e78'}
+];
+let wheelSpinning=false;
+
+function polarPt(cx0,cy0,r,angDeg){
+  const rad=(angDeg-90)*Math.PI/180;
+  return {x:cx0+r*Math.cos(rad), y:cy0+r*Math.sin(rad)};
+}
+
+function buildWheelSvg(){
+  const svg=document.getElementById('wheelSvg');
+  if(svg.dataset.built)return;
+  svg.dataset.built='1';
+  const c0=150, r=142, n=wheelSegments.length, seg=360/n;
+  let html='';
+  // outer gold rim
+  html+=`<circle cx="${c0}" cy="${c0}" r="${r+4}" fill="none" stroke="#c8a030" stroke-width="6"/>`;
+  wheelSegments.forEach((s,i)=>{
+    const a0=i*seg, a1=(i+1)*seg;
+    const p0=polarPt(c0,c0,r,a0), p1=polarPt(c0,c0,r,a1);
+    const large=seg>180?1:0;
+    html+=`<path d="M${c0},${c0} L${p0.x.toFixed(1)},${p0.y.toFixed(1)} A${r},${r} 0 ${large} 1 ${p1.x.toFixed(1)},${p1.y.toFixed(1)} Z" fill="${s.c}" stroke="#e0b840" stroke-width="2"/>`;
+    const mid=a0+seg/2;
+    const tp=polarPt(c0,c0,r*0.62,mid);
+    html+=`<text x="${tp.x.toFixed(1)}" y="${tp.y.toFixed(1)}" fill="#f0d060" font-size="17" font-weight="bold" font-family="Arial" text-anchor="middle" dominant-baseline="middle" transform="rotate(${mid.toFixed(1)},${tp.x.toFixed(1)},${tp.y.toFixed(1)})">x${s.v}</text>`;
+  });
+  // tick marks
+  for(let i=0;i<n;i++){
+    const p=polarPt(c0,c0,r+4,i*seg);
+    html+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="#f0c840"/>`;
+  }
+  svg.innerHTML=html;
+}
+
+function openWheel(){
+  G.wheelOpen=true;
+  buildWheelSvg();
+  const svg=document.getElementById('wheelSvg');
+  document.getElementById('wheelMsg').textContent='';
+  document.getElementById('wheelSpinBtn').disabled=false;
+  document.getElementById('wheelSpinBtn').style.opacity='1';
+  svg.style.transition='none';
+  svg.style.transform='rotate(0deg)';
+  void svg.offsetWidth;
+  svg.style.transition='transform 4s cubic-bezier(.12,.72,.14,1)';
+  document.getElementById('wheelPanel').style.display='flex';
+  ra();
+}
+
+function spinWheel(){
+  if(wheelSpinning)return;
+  wheelSpinning=true;
+  const btn=document.getElementById('wheelSpinBtn');
+  btn.disabled=true;btn.style.opacity='.5';
+  document.getElementById('wheelMsg').textContent='';
+  playWheelSpin();
+  const idx=Math.floor(Math.random()*wheelSegments.length);
+  const seg=360/wheelSegments.length;
+  const targetCenter=idx*seg+seg/2;
+  const spins=6;
+  const rotation=spins*360+(360-targetCenter);
+  document.getElementById('wheelSvg').style.transform=`rotate(${rotation}deg)`;
+  setTimeout(()=>{
+    const mult=wheelSegments[idx].v;
+    const earned=Math.round(20*mult/100);
+    G.coins+=earned;
+    playWheelWin();
+    document.getElementById('wheelMsg').textContent=`x${mult} LUCK! +${earned} COINS`;
+    setTimeout(()=>{
+      document.getElementById('wheelPanel').style.display='none';
+      G.wheelOpen=false;
+      if(G.seal) G.seal.collected=true;
+      wheelSpinning=false;
+      if(G.stage>=G.maxStage){ finishGameVictory(); }
+    },1500);
+  },4050);
+}
+
+function finishGameVictory(){
+  gameOn=false;
+  playWin();
+  document.getElementById('finalcoins').textContent=G.coins;
+  document.getElementById('gamewin').style.display='flex';
+  setTimeout(()=>{ window.location.href='map.html'; },3000);
+}
+
+function showNotif(text){
+  const t=document.createElement('div');
+  t.className='game-notif';
+  t.textContent=text;
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; },2400);
+  setTimeout(()=>{ t.remove(); },2900);
 }
 
 function startGame(){
@@ -312,6 +723,7 @@ function loop(ts){
 
 // ── UPDATE ──────────────────────────────────────────────────────
 function update(dt){
+  if(G.puzzleOpen||G.wheelOpen)return;
   const p=G.player;
   let mvx=0,mvy=0;
   if(inp['ArrowLeft']||inp['a'])mvx-=1;if(inp['ArrowRight']||inp['d'])mvx+=1;
@@ -326,16 +738,20 @@ function update(dt){
   // clamp to corridor
   const half=G.cW/2-14;
   p.x=Math.max(G.cX-half,Math.min(G.cX+half,p.x));
-  p.y=Math.max(G.gateY+G.gateH+10,Math.min(H*.92,p.y));
+  // once the gate is open, let the player walk through it (up past the old wall)
+  const minY = G.gateOpen ? (G.gateY-60) : (G.gateY+G.gateH+10);
+  p.y=Math.max(minY,Math.min(H*.92,p.y));
 
   // invincibility
   if(p.inv>0)p.inv-=dt;
 
-  // rock spawn
-  G.rockTimer-=dt;
-  if(G.rockTimer<=0&&!G.cleared){
-    G.rockTimer=G.rockInt;
-    spawnRock();
+  // rock spawn (falling-rock stages only — stage 3 has the rocks removed, puzzle only)
+  if(G.stageType!=='combat' && G.stage!==3){
+    G.rockTimer-=dt;
+    if(G.rockTimer<=0&&!G.cleared){
+      G.rockTimer=G.rockInt;
+      spawnRock();
+    }
   }
 
   // update rocks & warnings
@@ -361,17 +777,114 @@ function update(dt){
     const pt=G.particles[i];pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.vy+=120*dt;pt.life-=dt;
     if(pt.life<=0)G.particles.splice(i,1);
   }
+
+  // ── COMBAT STAGE LOGIC (stage 2, 4...) ──────────────────────
+  if(G.stageType==='combat'){
+    const chalf=G.cW/2-16;
+    // crabs scuttle side to side
+    G.enemies.forEach(en=>{
+      en.wobble+=dt*3;
+      en.x+=en.vx*en.spd*dt;
+      if(en.x<G.cX-chalf||en.x>G.cX+chalf) en.vx*=-1;
+      if(en.y<p.y-40) en.y+=10*dt;
+    });
+    // crab touches player -> damage
+    if(p.inv<=0){
+      for(let i=G.enemies.length-1;i>=0;i--){
+        const en=G.enemies[i];
+        const dx=en.x-p.x, dy=en.y-p.y;
+        if(Math.sqrt(dx*dx+dy*dy) < en.sz/2+14){ hitPlayer(); break; }
+      }
+    }
+    // Lara auto-shoots when standing still
+    const moving=ml>.1;
+    if(!moving){
+      G.shootTimer-=dt;
+      if(G.shootTimer<=0 && G.enemies.length>0){ fireBullet(); G.shootTimer=.35; }
+    }else{
+      G.shootTimer=Math.min(G.shootTimer,.15);
+    }
+    // bullets travel & hit crabs
+    for(let i=G.bullets.length-1;i>=0;i--){
+      const b=G.bullets[i];
+      b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
+      let hit=false;
+      for(let j=G.enemies.length-1;j>=0;j--){
+        const en=G.enemies[j];
+        const dx=en.x-b.x, dy=en.y-b.y;
+        if(Math.sqrt(dx*dx+dy*dy) < en.sz/2+6){
+          en.hp-=25; hit=true; playCrabHit();
+          for(let k=0;k<4;k++)G.particles.push({x:en.x,y:en.y,vx:(Math.random()-.5)*100,vy:(Math.random()-.5)*100,life:.3,col:'#c0392b',sz:2+Math.random()*3});
+          if(en.hp<=0){
+            // crab dies -> drops its key if it carried one, otherwise a coin pickup
+            if(en.hasKey){
+              G.pickups.push({x:en.x,y:en.y,val:0,bob:0,type:'key'});
+            }else{
+              G.pickups.push({x:en.x,y:en.y,val:8+Math.floor(Math.random()*6),bob:0,type:'coin'});
+            }
+            for(let k=0;k<8;k++)G.particles.push({x:en.x,y:en.y,vx:(Math.random()-.5)*160,vy:(Math.random()-.5)*160-40,life:.5,col:'#8a2010',sz:3+Math.random()*4});
+            G.enemies.splice(j,1); playEnemyDeath();
+          }
+          break;
+        }
+      }
+      if(hit||b.life<=0||b.y<0){ G.bullets.splice(i,1); }
+    }
+    // collect pickups by walking over them (coins or the crab's key)
+    for(let i=G.pickups.length-1;i>=0;i--){
+      const pk=G.pickups[i]; pk.bob+=dt*4;
+      const dx=pk.x-p.x, dy=pk.y-p.y;
+      if(Math.sqrt(dx*dx+dy*dy) < 26){
+        if(pk.type==='key'){ G.keyCollected=true; playCoinPickup(); if(G.stage===2){ G.hasStage2Key=true; } }
+        else{ G.coins+=pk.val; playCoinPickup(); }
+        G.pickups.splice(i,1);
+      }
+    }
+  }
+
+  // chest interaction (rock stages that hide the puzzle key)
+  if(G.chest && !G.chest.opened && !G.puzzleOpen && !G.keyCollected){
+    const dx=p.x-G.chest.x, dy=p.y-G.chest.y;
+    if(Math.sqrt(dx*dx+dy*dy) < 36){ openPuzzle(); }
+  }
+
+  // Lucky Wheel seal interaction (stage 4 treasure) — locked until the Stage 2 key is found
+  // AND this stage's own crabs are defeated, its key is collected, and all coins are picked up
+  if(G.seal && !G.seal.collected && !G.wheelOpen){
+    const dx=p.x-G.seal.x, dy=p.y-G.seal.y;
+    const nearSeal = Math.sqrt(dx*dx+dy*dy) < 40;
+    if(nearSeal){
+      const stageReady = G.enemies.length===0 && G.keyCollected && G.pickups.length===0;
+      if(G.hasStage2Key && stageReady){ openWheel(); }
+      else if(!G.sealLockedNotified){
+        G.sealLockedNotified=true;
+        if(!G.hasStage2Key) showNotif('The seal is locked — find the key in Stage 2!');
+        else if(G.enemies.length>0) showNotif('Defeat all the crabs first!');
+        else if(!G.keyCollected) showNotif('Collect the key first!');
+        else showNotif('Collect all the coins first!');
+      }
+    }else{
+      G.sealLockedNotified=false;
+    }
+  }
+
   // gate logic
   if(!G.gateOpen&&!G.cleared){
-    if(p.y<G.gateY+G.gateH+50&&Math.abs(p.x-G.cX)<G.cW/2){
-      G.gateOpen=true; playGateOpen();
+    const keyOK = !G.keyRequired || G.keyCollected;
+    if(G.stageType==='combat'){
+      // gate opens once every crab is defeated AND the key has been collected
+      if(G.enemies.length===0 && keyOK){ G.gateOpen=true; playGateOpen(); }
+    }else{
+      if(p.y<G.gateY+G.gateH+50&&Math.abs(p.x-G.cX)<G.cW/2 && keyOK){
+        G.gateOpen=true; playGateOpen();
+      }
     }
   }
   if(G.gateOpen&&!G.gateOpened){
     G.gateAnim=Math.min(1,G.gateAnim+dt*1.8);
     if(G.gateAnim>=1){G.gateOpened=true;}
   }
-  if(G.gateOpened&&!G.cleared){
+  if(G.gateOpened&&!G.cleared&&G.stage<G.maxStage){
     if(p.y<G.gateY+10) stageWin();
   }
 }
@@ -402,14 +915,17 @@ function stageWin(){
   const earned=8+G.stage*3; G.coins+=earned;
   gameOn=false; playWin();
   document.getElementById('wcoins').textContent=earned;
-  document.getElementById('winpanel').style.display='flex';
+  const panel=document.getElementById('winpanel');
+  panel.classList.add('show');
   updateHUD();
+  setTimeout(()=>{
+    panel.classList.remove('show');
+    nextStage();
+  },2200);
 }
 
 function nextStage(){
-  document.getElementById('winpanel').style.display='none';
   G.stage=Math.min(G.stage+1,G.maxStage);
-  G.hp=G.maxHp;
   initStage(); gameOn=true; lastT=performance.now();
   requestAnimationFrame(loop);
 }
@@ -427,7 +943,12 @@ function draw(){
   drawWarnings();
   drawGate();
   drawWalls();
+  drawChest();
+  drawSeal();
   drawRocks();
+  drawPickups();
+  drawEnemies();
+  drawBullets();
   drawParticles();
   drawPlayer();
   drawVignette();
@@ -648,6 +1169,178 @@ function drawRocks(){
   });
 }
 
+function drawEnemies(){
+  G.enemies.forEach(en=>{
+    const bob=Math.sin(en.wobble)*3;
+    // shadow
+    cx.fillStyle='rgba(0,0,0,.3)';cx.beginPath();cx.ellipse(en.x,en.y+en.sz/2+2,en.sz/2,en.sz/4,0,0,Math.PI*2);cx.fill();
+    cx.save();cx.translate(en.x,en.y+bob);
+    // body
+    cx.fillStyle='#c0392b';cx.beginPath();cx.ellipse(0,0,en.sz/2,en.sz/2.6,0,0,Math.PI*2);cx.fill();
+    cx.fillStyle='#e74c3c';cx.beginPath();cx.ellipse(-en.sz*.15,-en.sz*.15,en.sz*.18,en.sz*.12,0,0,Math.PI*2);cx.fill();
+    // legs
+    cx.strokeStyle='#7a1f10';cx.lineWidth=2;
+    for(let i=0;i<3;i++){
+      const lx=(en.sz/2)*.8;
+      cx.beginPath();cx.moveTo(-lx,-4+i*6);cx.lineTo(-lx-8,-8+i*8);cx.stroke();
+      cx.beginPath();cx.moveTo(lx,-4+i*6);cx.lineTo(lx+8,-8+i*8);cx.stroke();
+    }
+    // eyes
+    cx.fillStyle='#2a0a04';cx.beginPath();cx.arc(-en.sz*.12,-en.sz*.05,2.5,0,Math.PI*2);cx.arc(en.sz*.12,-en.sz*.05,2.5,0,Math.PI*2);cx.fill();
+    // claws
+    cx.fillStyle='#a02818';
+    cx.beginPath();cx.arc(-en.sz*.42,en.sz*.05,6,0,Math.PI*2);cx.fill();
+    cx.beginPath();cx.arc(en.sz*.42,en.sz*.05,6,0,Math.PI*2);cx.fill();
+    cx.restore();
+    // hp bar
+    const bw=36,bh=5,bx=en.x-bw/2,by=en.y-en.sz/2-14;
+    cx.fillStyle='rgba(0,0,0,.6)';cx.fillRect(bx-1,by-1,bw+2,bh+2);
+    cx.fillStyle='#c0392b';cx.fillRect(bx,by,bw*(en.hp/en.maxHp),bh);
+    // key marker above key-carrying crabs
+    if(en.hasKey){
+      const ky=by-14;
+      cx.save();cx.translate(en.x,ky);
+      cx.fillStyle='#f0c840';
+      cx.beginPath();cx.arc(-4,0,4,0,Math.PI*2);cx.fill();
+      cx.fillRect(-1,-1.5,9,3);
+      cx.fillRect(4,1.5,2,3);
+      cx.fillRect(7,1.5,2,4);
+      cx.strokeStyle='#8a6010';cx.lineWidth=1;cx.beginPath();cx.arc(-4,0,4,0,Math.PI*2);cx.stroke();
+      cx.restore();
+    }
+  });
+}
+
+function drawBullets(){
+  G.bullets.forEach(b=>{
+    const gl=cx.createRadialGradient(b.x,b.y,0,b.x,b.y,10);
+    gl.addColorStop(0,'rgba(255,220,120,.9)');gl.addColorStop(1,'transparent');
+    cx.fillStyle=gl;cx.fillRect(b.x-10,b.y-10,20,20);
+    cx.fillStyle='#fff4c0';cx.beginPath();cx.arc(b.x,b.y,3.5,0,Math.PI*2);cx.fill();
+  });
+}
+
+// Reusable "perfect coin" renderer — matches the HUD coin icon exactly.
+function drawCoinIcon(x,y,r){
+  cx.save();cx.translate(x,y);
+  const cg=cx.createRadialGradient(-r*.3,-r*.3,r*.15,0,0,r);
+  cg.addColorStop(0,'#fff4c0');cg.addColorStop(.45,'#ffe060');cg.addColorStop(.8,'#f0a000');cg.addColorStop(1,'#c07800');
+  cx.fillStyle=cg;cx.beginPath();cx.arc(0,0,r,0,Math.PI*2);cx.fill();
+  // gear teeth ring
+  cx.strokeStyle='#804000';cx.lineWidth=Math.max(1.4,r*.14);
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2;
+    cx.beginPath();
+    cx.moveTo(Math.cos(a)*r*.78,Math.sin(a)*r*.78);
+    cx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+    cx.stroke();
+  }
+  // inner ring
+  cx.beginPath();cx.arc(0,0,r*.5,0,Math.PI*2);cx.strokeStyle='#804000';cx.lineWidth=Math.max(1,r*.1);cx.stroke();
+  // outer rim highlight
+  cx.beginPath();cx.arc(0,0,r*.96,0,Math.PI*2);cx.strokeStyle='rgba(255,255,255,.35)';cx.lineWidth=1;cx.stroke();
+  // shine
+  cx.fillStyle='rgba(255,255,255,.55)';cx.beginPath();cx.ellipse(-r*.3,-r*.3,r*.22,r*.14,-.5,0,Math.PI*2);cx.fill();
+  cx.restore();
+}
+
+function drawPickups(){
+  G.pickups.forEach(pk=>{
+    const y=pk.y+Math.sin(pk.bob)*4;
+    if(pk.type==='key'){
+      cx.save();cx.translate(pk.x,y);
+      const glow=cx.createRadialGradient(0,0,0,0,0,18);
+      glow.addColorStop(0,'rgba(255,220,100,.55)');glow.addColorStop(1,'transparent');
+      cx.fillStyle=glow;cx.fillRect(-18,-18,36,36);
+      cx.rotate(Math.sin(Date.now()*.003)*.3);
+      cx.fillStyle='#f0c840';
+      cx.beginPath();cx.arc(-5,0,5,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#2a1a06';cx.beginPath();cx.arc(-5,0,2,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#f0c840';cx.fillRect(-1,-2,11,4);
+      cx.fillRect(6,2,2,4);
+      cx.fillRect(9,2,2,5);
+      cx.strokeStyle='#8a6010';cx.lineWidth=1;cx.beginPath();cx.arc(-5,0,5,0,Math.PI*2);cx.stroke();
+      cx.restore();
+    }else{
+      // perfect coin (same design used in stage 2 & stage 4 combat drops)
+      const glow=cx.createRadialGradient(pk.x,y,1,pk.x,y,16);
+      glow.addColorStop(0,'rgba(255,220,100,.35)');glow.addColorStop(1,'transparent');
+      cx.fillStyle=glow;cx.fillRect(pk.x-16,y-16,32,32);
+      drawCoinIcon(pk.x,y,10);
+    }
+  });
+}
+
+function drawChest(){
+  if(!G.chest||G.chest.opened)return;
+  const ch=G.chest;
+  const bob=Math.sin(Date.now()*.002)*2;
+  cx.save();cx.translate(ch.x,ch.y+bob);
+  // glow ring to draw attention
+  const glow=cx.createRadialGradient(0,4,4,0,4,34);
+  glow.addColorStop(0,'rgba(200,164,106,.35)');glow.addColorStop(1,'transparent');
+  cx.fillStyle=glow;cx.fillRect(-34,-30,68,68);
+  // shadow
+  cx.fillStyle='rgba(0,0,0,.3)';cx.beginPath();cx.ellipse(0,20,20,6,0,0,Math.PI*2);cx.fill();
+  // chest base
+  cx.fillStyle='#4a3018';cx.fillRect(-18,-2,36,20);
+  cx.strokeStyle='#2a1808';cx.lineWidth=1.5;cx.strokeRect(-18,-2,36,20);
+  // chest lid
+  cx.fillStyle='#5a3c20';cx.beginPath();
+  cx.moveTo(-18,-2);cx.quadraticCurveTo(0,-22,18,-2);cx.closePath();cx.fill();
+  cx.strokeStyle='#2a1808';cx.stroke();
+  // gold bands
+  cx.fillStyle='#c8a030';cx.fillRect(-18,-3,36,4);cx.fillRect(-3,-2,6,20);
+  // lock
+  cx.fillStyle='#f0c840';cx.beginPath();cx.arc(0,6,5,0,Math.PI*2);cx.fill();
+  cx.strokeStyle='#8a6010';cx.lineWidth=1;cx.stroke();
+  cx.restore();
+}
+
+// Stage 4 Lucky Wheel treasure seal — golden skull medallion, matches reference art
+function drawSeal(){
+  if(!G.seal||G.seal.collected)return;
+  const s=G.seal;
+  const bob=Math.sin(Date.now()*.0018)*3;
+  const pulse=.6+.4*Math.sin(Date.now()*.003);
+  cx.save();cx.translate(s.x,s.y+bob);
+  // shadow
+  cx.fillStyle='rgba(0,0,0,.3)';cx.beginPath();cx.ellipse(0,30,24,7,0,0,Math.PI*2);cx.fill();
+  // attention glow
+  const glow=cx.createRadialGradient(0,0,4,0,0,46*pulse);
+  glow.addColorStop(0,`rgba(240,200,90,${.4*pulse})`);glow.addColorStop(1,'transparent');
+  cx.fillStyle=glow;cx.fillRect(-50,-50,100,100);
+  // outer gold ring
+  cx.fillStyle='#c8a030';cx.beginPath();cx.arc(0,0,28,0,Math.PI*2);cx.fill();
+  cx.strokeStyle='#8a6010';cx.lineWidth=2;cx.stroke();
+  // teal ring
+  cx.fillStyle='#2e7d78';cx.beginPath();cx.arc(0,0,23,0,Math.PI*2);cx.fill();
+  // red inner ring
+  cx.fillStyle='#8a2a28';cx.beginPath();cx.arc(0,0,17,0,Math.PI*2);cx.fill();
+  // sunburst spikes on gold ring
+  cx.fillStyle='#e0b840';
+  for(let i=0;i<12;i++){
+    const a=i/12*Math.PI*2;
+    cx.beginPath();
+    cx.moveTo(Math.cos(a)*26,Math.sin(a)*26);
+    cx.lineTo(Math.cos(a+.06)*32,Math.sin(a+.06)*32);
+    cx.lineTo(Math.cos(a-.06)*32,Math.sin(a-.06)*32);
+    cx.closePath();cx.fill();
+  }
+  // black skull center
+  cx.fillStyle='#0c0c0c';cx.beginPath();cx.arc(0,0,12,0,Math.PI*2);cx.fill();
+  cx.fillStyle=`rgba(255,210,90,${.6+.4*Math.sin(Date.now()*.006)})`;
+  cx.beginPath();cx.arc(-4,-1,2.6,0,Math.PI*2);cx.arc(4,-1,2.6,0,Math.PI*2);cx.fill();
+  cx.fillStyle='#0c0c0c';cx.beginPath();cx.moveTo(0,1);cx.lineTo(-2.2,6);cx.lineTo(2.2,6);cx.closePath();cx.fill();
+  cx.fillStyle='rgba(255,210,90,.9)';
+  for(let i=0;i<3;i++)cx.fillRect(-4.5+i*4.2,7.5,2.4,2);
+  cx.restore();
+  // label
+  cx.fillStyle='#f0c840';cx.font='bold 11px Arial';cx.textAlign='center';
+  cx.fillText('LUCKY WHEEL',s.x,s.y+bob-42);
+  cx.textAlign='left';
+}
+
 function drawPlayer(){
   const p=G.player;
   const blink=p.inv>0&&Math.floor(p.inv*8)%2===0;if(blink)return;
@@ -688,7 +1381,7 @@ function drawPlayer(){
   cx.fillText(G.hp,bX+bW/2,bY-3);
 
   // direction arrow (like image - upward arrow guide)
-  if(G.stage===0&&!G.gateOpen){
+  if(G.stage===1&&!G.gateOpen){
     const arr_y=p.h/2+15+Math.sin(Date.now()*.004)*6;
     cx.fillStyle='rgba(200,180,100,.75)';
     cx.beginPath();cx.moveTo(0,arr_y);cx.lineTo(10,arr_y+18);cx.lineTo(4,arr_y+18);cx.lineTo(4,arr_y+32);cx.lineTo(-4,arr_y+32);cx.lineTo(-4,arr_y+18);cx.lineTo(-10,arr_y+18);cx.closePath();cx.fill();
@@ -721,20 +1414,13 @@ function drawHUD(){
   cx.fillStyle='rgba(255,255,255,.1)';roundRect(cx,8,8,36,36,6,'rgba(255,255,255,.08)');
   cx.fillStyle='#fff';cx.fillRect(17,16,5,20);cx.fillRect(26,16,5,20);
 
-  // LEVEL X STAGE Y/20 text - centered black bar like image
+  // LEVEL X STAGE Y/5 text - centered black bar like image
   cx.fillStyle='#fff';cx.font='bold 16px Arial';cx.textAlign='center';
   cx.fillText(`LEVEL  ${G.level}    STAGE  ${G.stage} / ${G.maxStage}`,W/2,30);
 
-  // Coin icon + count - top right like image
+  // Coin icon + count - top right, perfect coin icon matching reference art
   const coinX=W-70,coinY=10;
-  // Gold coin with gear look
-  const cg=cx.createRadialGradient(coinX+14,coinY+14,2,coinX+14,coinY+14,14);
-  cg.addColorStop(0,'#ffe060');cg.addColorStop(.6,'#f0a000');cg.addColorStop(1,'#c07800');
-  cx.fillStyle=cg;cx.beginPath();cx.arc(coinX+14,coinY+14,14,0,Math.PI*2);cx.fill();
-  // Gear teeth on coin
-  cx.strokeStyle='#804000';cx.lineWidth=2;
-  for(let i=0;i<8;i++){const a=i/8*Math.PI*2;cx.beginPath();cx.moveTo(coinX+14+Math.cos(a)*11,coinY+14+Math.sin(a)*11);cx.lineTo(coinX+14+Math.cos(a)*14,coinY+14+Math.sin(a)*14);cx.stroke();}
-  cx.beginPath();cx.arc(coinX+14,coinY+14,7,0,Math.PI*2);cx.strokeStyle='#804000';cx.stroke();
+  drawCoinIcon(coinX+14,coinY+14,14);
   cx.fillStyle='#fff';cx.font='bold 15px Arial';cx.textAlign='left';
   cx.fillText(G.coins,coinX+32,coinY+19);
 
@@ -742,8 +1428,56 @@ function drawHUD(){
   cx.fillStyle='rgba(255,255,255,.12)';cx.fillRect(0,40,W,10);
   cx.fillStyle='rgba(255,255,255,.5)';cx.fillRect(0,40,W*(G.stage/G.maxStage),10);
 
+  // Objectives panel (in-game checklist, like the reference mission panel)
+  drawObjectives();
+
   // Joystick UI (drawn, not DOM)
   drawJoystickUI();
+}
+
+function getObjectives(){
+  if(G.stageType==='combat'){
+    const obs=[
+      {text:`Defeat all crabs (${G.enemies.length} left)`, done:G.enemies.length===0}
+    ];
+    if(G.keyRequired) obs.push({text:'Collect the key from a crab', done:G.keyCollected});
+    obs.push({text:'Collect the dropped coins', done:G.pickups.length===0 && G.enemies.length===0});
+    if(G.seal){
+      if(G.stage>=G.maxStage){
+        obs.push({text: G.hasStage2Key ? 'Spin the Lucky Wheel to win the game' : 'Find the Stage 2 key to unlock the Lucky Wheel', done:G.seal.collected});
+      }else{
+        obs.push({text:'Find the Lucky Wheel seal (bonus)', done:G.seal.collected});
+      }
+    }
+    if(G.stage<G.maxStage) obs.push({text:'Enter the ancient gate', done:G.cleared});
+    return obs;
+  }
+  const obs=[];
+  if(G.stage===3){
+    obs.push({text:'Open the chest & solve the seal', done:G.keyCollected});
+  }else{
+    obs.push({text:'Dodge the falling rocks', done:G.gateOpened});
+    if(G.keyRequired) obs.push({text:'Open the chest & solve the seal', done:G.keyCollected});
+  }
+  obs.push({text:'Reach the ancient gate', done:G.cleared});
+  return obs;
+}
+
+function drawObjectives(){
+  const obs=getObjectives();
+  const px=10, py=58, pw=Math.min(270,W*.68), lh=19, ph=30+obs.length*lh;
+  cx.fillStyle='rgba(10,8,4,.78)';
+  cx.strokeStyle='rgba(200,164,106,.5)';cx.lineWidth=1.5;
+  cx.beginPath();cx.roundRect(px,py,pw,ph,8);cx.fill();cx.stroke();
+  cx.fillStyle='#c8a46a';cx.font='bold 11px Arial';cx.textAlign='left';
+  cx.fillText('OBJECTIVES',px+12,py+18);
+  obs.forEach((o,i)=>{
+    const oy=py+36+i*lh;
+    cx.fillStyle=o.done?'#5fae5f':'rgba(255,255,255,.85)';
+    cx.font='12px Arial';
+    cx.fillText((o.done?'✓ ':'○ ')+o.text,px+12,oy);
+  });
+  cx.textAlign='left';
 }
 
 function drawJoystickUI(){
