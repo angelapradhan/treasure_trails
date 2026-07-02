@@ -90,29 +90,33 @@
       background: #221c12;
     }
 
-    /* LOBBY DISPLAY FIELD */
-    .main-lobby {
-      flex: 1;
-      background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.95)), url('https://images.unsplash.com/photo-1627856013091-fed6e4e30025?q=80&w=1200') no-repeat center center/cover;
-      position: relative;
-      display: flex;
-      justify-content: space-between;
-      padding: 30px;
-    }
+   .main-lobby {
+  flex: 1;
+  background: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.95)),
+              url('https://images.unsplash.com/photo-1627856013091-fed6e4e30025?q=80&w=1200') no-repeat center center/cover;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30px 40px;
+  overflow: hidden;
+}
 
     /* CENTER VISUAL CHARACTER AREA WITH BOTTOM GAP */
-    .character-showcase {
-      position: absolute;
-      bottom: 90px; 
-      left: 38%;
-      transform: translateX(-50%);
-      height: 70%;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-end;
-      align-items: center;
-      width: 450px;
-    }
+    /* CENTER CHARACTER */
+.character-showcase {
+    position: absolute;
+    left: 50%;
+    bottom: 70px;
+    transform: translateX(-50%);
+    width: 420px;
+    height: 75%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    z-index: 2;
+}
     .char-image-container {
       position: relative;
       width: 100%;
@@ -302,8 +306,7 @@
   <div class="dashboard-wrapper">
     <div class="sidebar">
       <a href="dashboard.html" class="nav-btn active">Char</a>
-      <a href="map.html" class="nav-btn">Map</a> <a href="#" class="nav-btn">Gear</a>
-      <a href="#" class="nav-btn">Guild</a>
+      <a href="map.html" class="nav-btn">Map</a>
     </div>
 
     <div class="main-lobby">
