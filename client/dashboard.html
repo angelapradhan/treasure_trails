@@ -294,11 +294,9 @@
   <header>
     <div class="logo">Treasure Trails</div>
     <div class="stats-container">
-      <div class="stat-pill">LVL <span>14</span></div>
-      <div class="stat-pill">Coins: <span id="coin-count">1,250</span></div>
-      <div class="stat-pill">Crystals: <span>45</span></div>
-      <div class="stat-pill" style="border-color:#C5A059;">Profile</div>
-    </div>
+  <div class="stat-pill">LVL <span id="level-count">0</span></div>
+  <div class="stat-pill">Coins: <span id="coin-count">500</span></div>
+</div>
   </header>
 
   <div class="dashboard-wrapper">
@@ -415,7 +413,8 @@
   </div>
 
   <script>
-    let coins = 1250;
+   let coins = 500;
+   let level = 0; 
 
     const charactersData = [
       { id: "char_1", name: "Sherpa Scout", passive: "High Altitude Stamina (+20% Energy)", cost: 0, unlocked: true, color: "#8B0000" },
@@ -509,8 +508,10 @@
     }
 
     window.onload = function() {
-      selectCharacter('char_1');
-    };
+  document.getElementById("coin-count").innerText = coins;
+  document.getElementById("level-count").innerText = level;
+  selectCharacter("char_1");
+};
   </script>
 </body>
 </html>
