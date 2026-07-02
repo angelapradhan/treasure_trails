@@ -403,6 +403,22 @@
     ];
     function isSolid(gx, gy) { return gx < 0 || gx >= MAP_SIZE || gy < 0 || gy >= MAP_SIZE || MAP_GRID[gy][gx] > 0; }
 
+    // Roads are defined as world-space rectangles (in tile units) and are detected
+    // directly along each wall-cast ray, so they render with the exact same
+    // step-by-step sampling as the walls -- this keeps them perfectly locked to the
+    // floor with no separate "quad" that can desync, warp, or vanish near the camera.
+    const ROAD_RECTS = [
+      { x0: 1*TILE_SIZE,  x1: 15*TILE_SIZE, y0: 9*TILE_SIZE,  y1: 10*TILE_SIZE },
+      { x0: 7*TILE_SIZE,  x1: 8*TILE_SIZE,  y0: 10*TILE_SIZE, y1: 21*TILE_SIZE }
+    ];
+    function isRoadAt(wx, wy) {
+      for (let i = 0; i < ROAD_RECTS.length; i++) {
+        const r = ROAD_RECTS[i];
+        if (wx >= r.x0 && wx < r.x1 && wy >= r.y0 && wy < r.y1) return true;
+      }
+      return false;
+    }
+
     const player = { x: 650, y: 800, angle: Math.PI * 1.5, fov: Math.PI / 3, speed: 2.8 * activeChar.speed, ms: 0.0022 };
     let isThirdPerson = false, cameraBob = 0, cameraBobTime = 0;
     let zBuffer = [], horizonBob = 0, walkTime = 0, mmTick = 0;
@@ -436,8 +452,8 @@
       { type: 'key1', x: 7*TILE_SIZE+32,  y: 2*TILE_SIZE+42,  scale: 0.5, hidden: true, collected: false },
       { type: 'key2', x: 15*TILE_SIZE+32, y: 12*TILE_SIZE+42, scale: 0.5, hidden: true, collected: false },
       { type: 'key3', x: 8*TILE_SIZE+32,  y: 22*TILE_SIZE+42, scale: 0.5, hidden: true, collected: false },
-      { type: 'vehicle1', x: 2*TILE_SIZE,      y: 9*TILE_SIZE+32,  scale: 1.0, isVehicle: true, dx: 2.8,  minX: 1*TILE_SIZE,  maxX: 15*TILE_SIZE },
-      { type: 'vehicle2', x: 7*TILE_SIZE+32,   y: 11*TILE_SIZE,    scale: 1.0, isVehicle: true, dy: 3.5,  minY: 10*TILE_SIZE, maxY: 21*TILE_SIZE }
+      { type: 'vehicle1', asset: 'vehicle_h', aspect: 1.7,  x: 2*TILE_SIZE,      y: 9*TILE_SIZE+32,  scale: 1.05, isVehicle: true, dx: 2.8,  minX: 1*TILE_SIZE,  maxX: 15*TILE_SIZE, bounce: 0 },
+      { type: 'vehicle2', asset: 'vehicle_v', aspect: 0.85, x: 7*TILE_SIZE+32,   y: 11*TILE_SIZE,    scale: 1.05, isVehicle: true, dy: 3.5,  minY: 10*TILE_SIZE, maxY: 21*TILE_SIZE, bounce: 0 }
     ];
 
     const INTERACT_R = 80;
@@ -515,14 +531,105 @@
       c.beginPath(); c.arc(32,20,10,0,Math.PI*2); c.stroke();
       c.fillStyle = '#c5a059'; c.fillRect(29,30,6,25); c.fillRect(35,45,10,6); c.fillRect(35,51,8,4);
     });
-    buildOffscreenAsset('vehicle', 256, 128, (c) => {
-      c.fillStyle = '#c54233'; c.fillRect(10,30,236,68);
-      c.fillStyle = '#3a598c'; c.fillRect(10,60,236,15);
-      c.fillStyle = '#eae6df'; c.fillRect(10,15,236,15);
-      c.fillStyle = '#222'; for (let i=0; i<5; i++) c.fillRect(25+i*42,35,30,20);
-      c.fillStyle = '#111'; c.beginPath(); c.arc(60,105,20,0,Math.PI*2); c.fill();
-      c.beginPath(); c.arc(190,105,20,0,Math.PI*2); c.fill();
-    });
+    function buildVehicleAsset(name, bodyColor, roofColor) {
+      buildOffscreenAsset(name, 256, 128, (c) => {
+        // ground shadow baked in
+        c.fillStyle = 'rgba(0,0,0,0.35)';
+        c.beginPath(); c.ellipse(128, 116, 118, 10, 0, 0, Math.PI*2); c.fill();
+        // lower body
+        const bodyGrad = c.createLinearGradient(0, 50, 0, 100);
+        bodyGrad.addColorStop(0, bodyColor); bodyGrad.addColorStop(1, '#000');
+        c.fillStyle = bodyColor;
+        c.beginPath();
+        c.moveTo(14, 100); c.lineTo(14, 70); c.quadraticCurveTo(14, 58, 28, 56);
+        c.lineTo(228, 56); c.quadraticCurveTo(242, 58, 242, 70); c.lineTo(242, 100);
+        c.quadraticCurveTo(242, 108, 232, 108); c.lineTo(24, 108); c.quadraticCurveTo(14, 108, 14, 100);
+        c.closePath(); c.fill();
+        c.fillStyle = bodyGrad; c.fillRect(14, 82, 228, 26);
+        // cabin / roof + windows
+        c.fillStyle = roofColor;
+        c.beginPath();
+        c.moveTo(66, 56); c.quadraticCurveTo(74, 22, 110, 20); c.lineTo(158, 20);
+        c.quadraticCurveTo(190, 22, 198, 56); c.closePath(); c.fill();
+        c.fillStyle = '#7fd4f0';
+        c.beginPath();
+        c.moveTo(78, 52); c.quadraticCurveTo(84, 30, 112, 28); c.lineTo(126, 28); c.lineTo(126, 52); c.closePath(); c.fill();
+        c.beginPath();
+        c.moveTo(132, 28); c.lineTo(154, 28); c.quadraticCurveTo(180, 30, 186, 52); c.lineTo(132, 52); c.closePath(); c.fill();
+        c.fillStyle = 'rgba(20,20,25,0.55)'; c.fillRect(128, 26, 4, 26);
+        // door seam + handle
+        c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(128, 56); c.lineTo(128, 106); c.stroke();
+        c.fillStyle = '#ddd'; c.fillRect(96, 78, 16, 4); c.fillRect(150, 78, 16, 4);
+        // bumpers
+        c.fillStyle = '#d8d8d8'; c.fillRect(8, 92, 16, 14); c.fillRect(232, 92, 16, 14);
+        // headlights (front, right side) & taillights (rear, left side)
+        c.fillStyle = '#fff6c8'; c.beginPath(); c.ellipse(236, 90, 7, 9, 0, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#ff5544'; c.beginPath(); c.ellipse(20, 90, 6, 9, 0, 0, Math.PI*2); c.fill();
+        // wheels + hubcaps
+        [58, 198].forEach(wx => {
+          c.fillStyle = '#111'; c.beginPath(); c.arc(wx, 108, 20, 0, Math.PI*2); c.fill();
+          c.fillStyle = '#555'; c.beginPath(); c.arc(wx, 108, 11, 0, Math.PI*2); c.fill();
+          c.fillStyle = '#ccc';
+          for (let a=0; a<Math.PI*2; a+=Math.PI/3) {
+            c.beginPath(); c.moveTo(wx,108);
+            c.lineTo(wx+Math.cos(a)*9, 108+Math.sin(a)*9); c.lineWidth=2.5; c.strokeStyle='#ccc'; c.stroke();
+          }
+        });
+      });
+    }
+    buildVehicleAsset('vehicle_h', '#c54233', '#7c1f1f');
+
+    // Front/rear-on car view — used for vehicles driving along a vertical (north-south)
+    // corridor. A side-profile billboard always reads as "moving sideways" no matter
+    // which way it's actually travelling, since it never rotates to face the camera.
+    // This narrow, symmetric silhouette (hood/windshield centered, headlights mirrored
+    // left-right) reads correctly as driving straight toward or away from the player.
+    function buildFrontVehicleAsset(name, bodyColor, roofColor) {
+      buildOffscreenAsset(name, 160, 200, (c) => {
+        c.fillStyle = 'rgba(0,0,0,0.35)';
+        c.beginPath(); c.ellipse(80, 186, 66, 12, 0, 0, Math.PI*2); c.fill();
+        // body (wider at bumper, tapers up toward roof)
+        const bodyGrad = c.createLinearGradient(0, 90, 0, 175);
+        bodyGrad.addColorStop(0, bodyColor); bodyGrad.addColorStop(1, '#000');
+        c.fillStyle = bodyColor;
+        c.beginPath();
+        c.moveTo(18, 175); c.quadraticCurveTo(10, 140, 26, 110);
+        c.quadraticCurveTo(34, 80, 50, 62); c.lineTo(110, 62);
+        c.quadraticCurveTo(126, 80, 134, 110); c.quadraticCurveTo(150, 140, 142, 175);
+        c.quadraticCurveTo(142, 184, 130, 184); c.lineTo(30, 184);
+        c.quadraticCurveTo(18, 184, 18, 175); c.closePath(); c.fill();
+        c.fillStyle = bodyGrad; c.fillRect(18, 130, 124, 46);
+        // roof + windshield
+        c.fillStyle = roofColor;
+        c.beginPath();
+        c.moveTo(50, 62); c.quadraticCurveTo(56, 30, 80, 26); c.quadraticCurveTo(104, 30, 110, 62);
+        c.closePath(); c.fill();
+        c.fillStyle = '#7fd4f0';
+        c.beginPath();
+        c.moveTo(58, 60); c.quadraticCurveTo(62, 38, 80, 34); c.quadraticCurveTo(98, 38, 102, 60);
+        c.closePath(); c.fill();
+        // side mirrors
+        c.fillStyle = roofColor; c.fillRect(14, 76, 10, 8); c.fillRect(136, 76, 10, 8);
+        // hood seam
+        c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(80, 62); c.lineTo(80, 160); c.stroke();
+        // bumper + grille
+        c.fillStyle = '#d8d8d8'; c.fillRect(20, 160, 120, 16);
+        c.fillStyle = 'rgba(0,0,0,0.3)';
+        for (let gx=40; gx<120; gx+=10) c.fillRect(gx, 164, 4, 8);
+        // headlights, mirrored left/right
+        c.fillStyle = '#fff6c8';
+        c.beginPath(); c.ellipse(34, 148, 9, 7, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.ellipse(126, 148, 9, 7, 0, 0, Math.PI*2); c.fill();
+        // wheels peeking out at the base corners
+        [26, 134].forEach(wx => {
+          c.fillStyle = '#111'; c.beginPath(); c.arc(wx, 182, 14, 0, Math.PI*2); c.fill();
+          c.fillStyle = '#555'; c.beginPath(); c.arc(wx, 182, 7, 0, Math.PI*2); c.fill();
+        });
+      });
+    }
+    buildFrontVehicleAsset('vehicle_v', '#3a7fb0', '#1c4763');
     ['char_1','char_2','char_3','char_4','char_5','char_6','char_7'].forEach((id, i) => {
       const colors = ['#8B0000','#eaeaea','#c3b091','#2e461a','#eae6df','#1a1a1a','#c41e3a'];
       buildOffscreenAsset(`${id}_back`, 128, 128, (c) => {
@@ -556,18 +663,9 @@
         if (!s.isVehicle) return;
         if (s.dx) { s.x += s.dx; if (s.x > s.maxX || s.x < s.minX) s.dx = -s.dx; }
         if (s.dy) { s.y += s.dy; if (s.y > s.maxY || s.y < s.minY) s.dy = -s.dy; }
-        if (Math.hypot(player.x - s.x, player.y - s.y) < 28) triggerDamage();
+        s.bounce = (s.bounce || 0) + 0.22;
+        if (Math.hypot(player.x - s.x, player.y - s.y) < 30) triggerDamage();
       });
-    }
-
-    function projectPoint(x, y, camX, camY, W, H, horizon) {
-      let rx = x-camX, ry = y-camY;
-      let sa = Math.atan2(ry,rx) - player.angle;
-      while (sa > Math.PI) sa -= 2*Math.PI;
-      while (sa < -Math.PI) sa += 2*Math.PI;
-      const cd = Math.hypot(rx,ry) * Math.cos(sa);
-      if (cd <= 0) return null;
-      return { x: (W/2) + (W/2)*Math.tan(sa)/Math.tan(player.fov/2), y: horizon + (TILE_SIZE*H/2)/cd };
     }
 
     function getCamPos() {
@@ -602,35 +700,60 @@
       fg.addColorStop(0, THEME.floor); fg.addColorStop(1, THEME.floorD);
       ctx.fillStyle = fg; ctx.fillRect(0, horizon, W, H - horizon);
 
-      function drawRoad(x1,y1,x2,y2,x3,y3,x4,y4) {
-        const p1=projectPoint(x1,y1,camX,camY,W,H,horizon);
-        const p2=projectPoint(x2,y2,camX,camY,W,H,horizon);
-        const p3=projectPoint(x3,y3,camX,camY,W,H,horizon);
-        const p4=projectPoint(x4,y4,camX,camY,W,H,horizon);
-        if (!p1||!p2||!p3||!p4) return;
-        ctx.save();
-        ctx.fillStyle='#222224';
-        ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.lineTo(p3.x,p3.y); ctx.lineTo(p4.x,p4.y); ctx.closePath(); ctx.fill();
-        ctx.strokeStyle='#9e7d3b'; ctx.lineWidth=3; ctx.setLineDash([12,18]);
-        ctx.beginPath(); ctx.moveTo((p1.x+p4.x)/2,(p1.y+p4.y)/2); ctx.lineTo((p2.x+p3.x)/2,(p2.y+p3.y)/2); ctx.stroke();
-        ctx.restore();
-      }
-      drawRoad(1*TILE_SIZE,9*TILE_SIZE, 15*TILE_SIZE,9*TILE_SIZE, 15*TILE_SIZE,10*TILE_SIZE, 1*TILE_SIZE,10*TILE_SIZE);
-      drawRoad(7*TILE_SIZE,10*TILE_SIZE, 8*TILE_SIZE,10*TILE_SIZE, 8*TILE_SIZE,21*TILE_SIZE, 7*TILE_SIZE,21*TILE_SIZE);
-
       zBuffer = new Array(W);
       const startAngle = player.angle - player.fov/2;
       for (let col=0; col<W; col++) {
         const rayAngle = startAngle + (col/W)*player.fov;
         const cosA = Math.cos(rayAngle), sinA = Math.sin(rayAngle);
         let dist=0, wallType=0, hit=false;
+        // Track every stretch of road tiles this ray passes through, using the exact
+        // same per-step samples used to find the wall -- this guarantees the road never
+        // drifts out of sync with the geometry the player is actually walking on, and
+        // it is automatically clipped by whatever wall the ray eventually hits.
+        const roadRuns = [];
+        let inRoad = false, roadEnter = 0;
         while (!hit && dist<1400) {
           dist += 2;
-          const cx = Math.floor((camX+cosA*dist)/TILE_SIZE);
-          const cy = Math.floor((camY+sinA*dist)/TILE_SIZE);
+          const wx = camX+cosA*dist, wy = camY+sinA*dist;
+          const cx = Math.floor(wx/TILE_SIZE);
+          const cy = Math.floor(wy/TILE_SIZE);
           if (cx<0||cx>=MAP_SIZE||cy<0||cy>=MAP_SIZE) { hit=true; dist=1400; }
           else if (MAP_GRID[cy][cx]>0) { hit=true; wallType=MAP_GRID[cy][cx]; }
+          else {
+            const onRoad = isRoadAt(wx, wy);
+            if (onRoad && !inRoad) { inRoad = true; roadEnter = dist; }
+            else if (!onRoad && inRoad) { inRoad = false; roadRuns.push({ enter: roadEnter, exit: dist }); }
+          }
         }
+        if (inRoad) roadRuns.push({ enter: roadEnter, exit: dist });
+
+        const cosDiff = Math.cos(rayAngle - player.angle);
+        if (roadRuns.length) {
+          roadRuns.forEach(run => {
+            const d0 = Math.max(run.enter, 1), d1 = Math.min(run.exit, dist);
+            if (d1 <= d0) return;
+            const c0 = d0*cosDiff, c1 = d1*cosDiff;
+            if (c0 <= 0 || c1 <= 0) return;
+            const p0 = (TILE_SIZE*H)/(2*c0);
+            const p1 = (TILE_SIZE*H)/(2*c1);
+            const y0 = Math.min(H, horizon + p0);
+            const y1 = Math.max(horizon, horizon + p1);
+            if (y0 <= y1) return;
+            const midD = (d0+d1)/2;
+            const rb = Math.max(0.06, Math.min(1, 1 - midD/900));
+            const mx = camX+cosA*midD, my = camY+sinA*midD;
+            const checker = (Math.floor(mx/20)+Math.floor(my/20)) % 2 === 0;
+            const laneMid = (Math.floor((mx+my)/22) % 9 === 0) || (Math.floor((mx+my)/22) % 9 === 1);
+            if (laneMid) {
+              ctx.fillStyle = `rgb(${Math.floor(5*rb)},${Math.floor(5*rb)},${Math.floor(5*rb)})`;
+            } else {
+              const base = checker ? 22 : 16;
+              ctx.fillStyle = `rgb(${Math.floor(base*rb)},${Math.floor(base*rb)},${Math.floor(base*rb)})`;
+            }
+            ctx.fillRect(col, y1, 1, y0-y1);
+          });
+        }
+
         const corrected = dist * Math.cos(rayAngle - player.angle);
         zBuffer[col] = corrected;
         const wH = Math.min(H*2, (TILE_SIZE*H)/(corrected+0.001));
@@ -642,35 +765,50 @@
         let offset = Math.abs(hitX - Math.round(hitX/TILE_SIZE)*TILE_SIZE) < Math.abs(hitY - Math.round(hitY/TILE_SIZE)*TILE_SIZE) ? hitY%TILE_SIZE : hitX%TILE_SIZE;
         const yTop = horizon - wH/2;
 
-        if (wallType === 2) {
-          ctx.fillStyle = `rgb(${Math.floor(135*brt)},${Math.floor(125*brt)},${Math.floor(115*brt)})`; ctx.fillRect(col,yTop,1,wH);
-          const rH = wH*0.20;
-          ctx.fillStyle = `rgb(${Math.floor(215*brt)},${Math.floor(165*brt)},${Math.floor(45*brt)})`; ctx.fillRect(col,yTop,1,rH);
-          ctx.fillStyle = `rgb(${Math.floor(95*brt)},${Math.floor(65*brt)},${Math.floor(40*brt)})`; ctx.fillRect(col,yTop+rH,1,Math.max(1,wH*0.03));
-          let wo = Math.floor(offset)%40;
-          if (wo>12&&wo<28) {
-            const wt=yTop+wH*0.45, wh=wH*0.22;
-            ctx.fillStyle=`rgb(${Math.floor(35*brt)},${Math.floor(25*brt)},${Math.floor(20*brt)})`; ctx.fillRect(col,wt,1,wh);
-            if (wo%6<2) { ctx.fillStyle=`rgb(${Math.floor(140*brt)},${Math.floor(90*brt)},${Math.floor(55*brt)})`; ctx.fillRect(col,wt,1,wh); }
+        if (wallType !== 3) {
+          // Gray concrete tile-grid wall (the version used just before the blue walls).
+          const cell = 16;
+          const cellPos = ((offset % cell) + cell) % cell;
+          const bandIndex = Math.floor(offset / cell);
+          const rows = 4;
+          const rowH = wH / rows;
+          for (let r = 0; r < rows; r++) {
+            const ry = yTop + r * rowH;
+            const checker = (bandIndex + r) % 2 === 0;
+            const shade = checker ? 74 : 60;
+            ctx.fillStyle = `rgb(${Math.floor(shade*brt)},${Math.floor(shade*brt)},${Math.floor((shade+3)*brt)})`;
+            ctx.fillRect(col, ry, 1, rowH + 1);
           }
+          const distToVLine = Math.min(cellPos, cell - cellPos);
+          if (distToVLine < 1.4) {
+            ctx.fillStyle = `rgb(${Math.floor(6*brt)},${Math.floor(6*brt)},${Math.floor(6*brt)})`;
+            ctx.fillRect(col, yTop, 1, wH);
+          }
+          for (let r = 1; r < rows; r++) {
+            ctx.fillStyle = `rgb(${Math.floor(6*brt)},${Math.floor(6*brt)},${Math.floor(6*brt)})`;
+            ctx.fillRect(col, yTop + r * rowH, 1, Math.max(1, wH * 0.012));
+          }
+          const borderH = Math.max(1, wH * 0.03);
+          ctx.fillStyle = `rgb(${Math.floor(3*brt)},${Math.floor(3*brt)},${Math.floor(3*brt)})`;
+          ctx.fillRect(col, yTop, 1, borderH);
+          ctx.fillRect(col, yTop + wH - borderH, 1, borderH);
         } else if (wallType === 3) {
-          ctx.fillStyle = `rgb(${Math.floor(140*brt)},${Math.floor(65*brt)},${Math.floor(55*brt)})`; ctx.fillRect(col,yTop,1,wH);
-          for (let y=Math.floor(yTop); y<Math.floor(yTop+wH); y+=Math.max(4,Math.floor(wH*0.08))) {
-            ctx.fillStyle=`rgba(40,40,40,${0.45*brt})`; ctx.fillRect(col,y,1,1);
+          // Wooden fence/gate divider — vertical plank texture with a scalloped/arched
+          // top edge and a horizontal cross-brace, matching the wooden gate in the reference.
+          const plankCycle = 18;
+          let woF = Math.floor(offset) % plankCycle;
+          const archOffset = Math.sin((woF / plankCycle) * Math.PI) * wH * 0.07;
+          const fenceTop = yTop - archOffset;
+          const fenceH = wH + archOffset;
+          ctx.fillStyle = `rgb(${Math.floor(122*brt)},${Math.floor(86*brt)},${Math.floor(46*brt)})`;
+          ctx.fillRect(col, fenceTop, 1, fenceH);
+          if (woF < 2 || woF > plankCycle - 3) {
+            ctx.fillStyle = `rgb(${Math.floor(72*brt)},${Math.floor(48*brt)},${Math.floor(24*brt)})`;
+            ctx.fillRect(col, fenceTop, 1, fenceH);
           }
-          const rH=wH*0.20;
-          ctx.fillStyle=`rgb(${Math.floor(60*brt)},${Math.floor(55*brt)},${Math.floor(65*brt)})`; ctx.fillRect(col,yTop,1,rH);
-          let wo=Math.floor(offset)%48;
-          if (wo>15&&wo<33) {
-            const wt=yTop+wH*0.42, wh=wH*0.28;
-            if (wo===16||wo===32) { ctx.fillStyle=`rgb(${Math.floor(230*brt)},${Math.floor(230*brt)},${Math.floor(230*brt)})`; ctx.fillRect(col,wt,1,wh); }
-            else { ctx.fillStyle=`rgb(${Math.floor(35*brt)},${Math.floor(45*brt)},${Math.floor(65*brt)})`; ctx.fillRect(col,wt+1,1,wh-2); }
-          }
-        } else {
-          ctx.fillStyle=`rgb(${Math.floor(215*brt)},${Math.floor(205*brt)},${Math.floor(175*brt)})`; ctx.fillRect(col,yTop,1,wH);
-          const rH=wH*0.15;
-          ctx.fillStyle=`rgb(${Math.floor(145*brt)},${Math.floor(65*brt)},${Math.floor(45*brt)})`; ctx.fillRect(col,yTop,1,rH);
-          ctx.fillStyle=`rgb(${Math.floor(80*brt)},${Math.floor(35*brt)},${Math.floor(25*brt)})`; ctx.fillRect(col,yTop+rH,1,Math.max(1,wH*0.03));
+          const braceY = fenceTop + fenceH * 0.52, braceH = fenceH * 0.09;
+          ctx.fillStyle = `rgb(${Math.floor(92*brt)},${Math.floor(62*brt)},${Math.floor(30*brt)})`;
+          ctx.fillRect(col, braceY, 1, braceH);
         }
       }
     }
@@ -703,8 +841,10 @@
           const sx = (W/2)+(W/2)*Math.tan(sa)/Math.tan(player.fov/2);
           if (sx<-200||sx>W+200) return;
           const sH = Math.min(H*2.5,(TILE_SIZE*H*1.35*s.scale)/(cd+0.001));
-          const sW = sH;
+          const aspect = s.aspect || (s.isVehicle ? 1.7 : 1.0);
+          const sW = sH * aspect;
           const brt = Math.max(0.04, Math.min(1, 1-cd/1200));
+          const bounceY = s.isVehicle ? Math.sin(s.bounce || 0) * 1.6 : 0;
 
           if (s.type==='checkpoint'||s.type==='final') {
             const [r,g,b]=s.rgb;
@@ -727,13 +867,16 @@
             return;
           }
 
-          let assetName = s.type==='player' ? `${selectedChar}_back` : s.type.startsWith('vehicle') ? 'vehicle' : s.type.startsWith('key') ? 'key' : s.type;
+          let assetName = s.type==='player' ? `${selectedChar}_back` : s.type.startsWith('vehicle') ? (s.asset || 'vehicle_h') : s.type.startsWith('key') ? 'key' : s.type;
           const img = offscreen[assetName]; if (!img) return;
-          const startX=Math.round(sx-sW/2), endX=Math.round(sx+sW/2), targetY=horizon-sH/2;
+          const flip = s.type === 'vehicle1' && s.dx < 0;
+          const startX=Math.round(sx-sW/2), endX=Math.round(sx+sW/2), targetY=horizon-sH/2+bounceY;
           for (let x=startX; x<endX; x++) {
             if (x<0||x>=W) continue;
             if (zBuffer[x]!==undefined&&cd>zBuffer[x]+2) continue;
-            ctx.drawImage(img, Math.floor(((x-startX)/sW)*img.width), 0, 1, img.height, x, targetY, 1, sH);
+            let srcCol = Math.floor(((x-startX)/sW)*img.width);
+            if (flip) srcCol = img.width - 1 - srcCol;
+            ctx.drawImage(img, srcCol, 0, 1, img.height, x, targetY, 1, sH);
           }
         });
     }
@@ -747,7 +890,7 @@
       for (let gy=0;gy<MAP_SIZE;gy++) for (let gx=0;gx<MAP_SIZE;gx++) {
         const rx=(gx*TILE_SIZE-player.x)*scale, ry=(gy*TILE_SIZE-player.y)*scale, ts=TILE_SIZE*scale+0.5;
         const cell=MAP_GRID[gy][gx];
-        mm.fillStyle=cell>0?(cell===1?'#2b1a13':cell===2?'#6e5c53':cell===3?'#6e382f':'#8c8078'):'#09090e';
+        mm.fillStyle=cell>0?(cell===3?'#7a5a2e':'#5a5a58'):'#09090e';
         mm.fillRect(rx,ry,ts,ts);
       }
       CHECKPOINTS.forEach(cp => {
