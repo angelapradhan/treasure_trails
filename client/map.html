@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Treasure Trails - Expedition Map</title>
+  <title>Treasure Trails - Trail Map</title>
   <meta name="description" content="Browse the Nepal treasure hunt trail and choose your next expedition.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -570,17 +570,15 @@
   <audio id="bg-music" src="images/bbbb.mp3" loop preload="auto"></audio>
 
   <header>
-    <div class="logo">Nepal Treasure Hunt</div>
+    <div class="logo">Treasure Trails</div>
     <div class="header-right">
-      <div class="stat-pill">LVL <span id="player-lvl">0</span></div>
-<div class="stat-pill">Gold: <span id="coin-count">500</span></div>
       <button class="back-btn" onclick="goToDashboard()">← Back to Hub</button>
     </div>
   </header>
 
   <div id="screen-trail">
     <div class="trail-top-bar">
-      <h1>Expedition Trail</h1>
+      <h1></h1>
       <span class="region-banner" id="region-banner">Nepal · Himal Route</span>
       <span class="trail-scroll-hint">← Drag map →</span>
     </div>
@@ -674,7 +672,7 @@
       },
       {
         id: 'valley_expedition',
-        name: 'Valley Expedition',
+        name: 'Valley Trail',
         region: 'Valley',
         zone: 'Kathmandu Valley',
         altitude: 1400,
@@ -873,8 +871,7 @@
     }
 
     function updateHUD() {
-      document.getElementById('coin-count').innerText = state.coins.toLocaleString();
-      document.getElementById('player-lvl').innerText = state.level;
+      // LVL / Gold stat pills were removed from the header; nothing to update here now.
     }
 
     function goToDashboard() {
