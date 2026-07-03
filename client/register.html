@@ -76,7 +76,48 @@
     </div>
   </main>
 
+  <!-- Background Audio Setup -->
+  <audio id="bgAudio" src="images/aaa.mp3" preload="auto" loop></audio>
+
   <script>
+    const audio = document.getElementById("bgAudio");
+
+    // Save timestamp and state before user navigates away
+    window.addEventListener("beforeunload", () => {
+        localStorage.setItem("audioTime", audio.currentTime);
+        localStorage.setItem("audioPlaying", !audio.paused);
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedTime = localStorage.getItem("audioTime");
+        const wasPlaying = localStorage.getItem("audioPlaying");
+
+        if (savedTime) {
+            audio.currentTime = parseFloat(savedTime);
+        }
+
+        const playAudio = () => {
+            audio.play()
+                .then(() => {
+                    // Remove listeners once it successfully starts playing
+                    document.removeEventListener("click", playAudio);
+                    document.removeEventListener("keydown", playAudio);
+                })
+                .catch(err => console.log("Autoplay blocked. Waiting for user interaction."));
+        };
+
+        if (wasPlaying === "true") {
+            audio.play().catch(() => {
+                document.addEventListener("click", playAudio);
+                document.addEventListener("keydown", playAudio);
+            });
+        } else {
+            document.addEventListener("click", playAudio);
+            document.addEventListener("keydown", playAudio);
+        }
+    });
+
+    // Form Submission Logic
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
         e.preventDefault(); // Prevents default form layout refresh flow
 

@@ -6,7 +6,6 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="landing-body">
-    <!-- Top Navigation Bar -->
     <nav class="nav-container">
         <div class="nav-left">
             <span class="mini-logo">TREASURE <br> TRAILS</span>
@@ -24,7 +23,6 @@
         </div>
     </nav>
 
-    <!-- Main Cinematic Hero -->
     <section class="hero-container">
         <div class="hero-content">
             <h1 class="main-title">TREASURE<br>TRAILS</h1>
@@ -35,5 +33,47 @@
     <div class="bottom-action">
         <button class="btn-gold-small">Redeem Codes</button>
     </div>
+
+    <audio id="bgAudio" src="images/aaa.mp3" preload="auto" loop></audio>
+
+    <script>
+        const audio = document.getElementById("bgAudio");
+
+        // Save timestamp and state before user navigates away
+        window.addEventListener("beforeunload", () => {
+            localStorage.setItem("audioTime", audio.currentTime);
+            localStorage.setItem("audioPlaying", !audio.paused);
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            const savedTime = localStorage.getItem("audioTime");
+            const wasPlaying = localStorage.getItem("audioPlaying");
+
+            if (savedTime) {
+                audio.currentTime = parseFloat(savedTime);
+            }
+
+            const playAudio = () => {
+                audio.play()
+                    .then(() => {
+                        // Remove listeners once it successfully starts playing
+                        document.removeEventListener("click", playAudio);
+                        document.removeEventListener("keydown", playAudio);
+                    })
+                    .catch(err => console.log("Autoplay blocked. Waiting for user interaction."));
+            };
+4
+            if (wasPlaying === "true") {
+                audio.play().catch(() => {
+                    document.addEventListener("click", playAudio);
+                    document.addEventListener("keydown", playAudio);
+                });
+            } else {
+                // Instantly plays on the very first click anywhere on the landing page
+                document.addEventListener("click", playAudio);
+                document.addEventListener("keydown", playAudio);
+            }
+        });
+    </script>
 </body>
 </html>

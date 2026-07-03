@@ -566,6 +566,9 @@
 <body>
   <div id="notification" class="game-notification"></div>
 
+  <!-- Background music: autoplay + loop -->
+  <audio id="bg-music" src="images/bbbb.mp3" loop preload="auto"></audio>
+
   <header>
     <div class="logo">Nepal Treasure Hunt</div>
     <div class="header-right">
@@ -1065,12 +1068,34 @@
       });
     }
 
+    /* Background music: attempt autoplay; if the browser blocks it,
+       start on the first user interaction (click/touch/key). */
+    function setupBackgroundMusic() {
+      const music = document.getElementById('bg-music');
+      if (!music) return;
+      music.volume = 0.5;
+
+      const tryPlay = () => music.play().catch(() => {});
+      tryPlay();
+
+      const startOnInteraction = () => {
+        tryPlay();
+        document.removeEventListener('click', startOnInteraction);
+        document.removeEventListener('touchstart', startOnInteraction);
+        document.removeEventListener('keydown', startOnInteraction);
+      };
+      document.addEventListener('click', startOnInteraction);
+      document.addEventListener('touchstart', startOnInteraction);
+      document.addEventListener('keydown', startOnInteraction);
+    }
+
     window.onload = function () {
       updateHUD();
       renderTrail();
       const firstUnlocked = TRAIL_MAPS.findIndex(m => isMapUnlocked(m));
       selectMap(firstUnlocked >= 0 ? firstUnlocked : 0);
       setupScrollInteraction();
+      setupBackgroundMusic();
     };
   </script>
 </body>
