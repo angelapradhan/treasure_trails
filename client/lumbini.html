@@ -284,11 +284,12 @@
     <div class="loot-card">
       <div class="hud-title">Expedition Rewards</div>
       <div class="loot-row">🪙 <span id="earned-gold-value">250</span> Gold Coins</div>
-      <div class="quest-item" style="color:#4dfa62; border:none;">Level Up! LVL 14 &rarr; 15</div>
+      <div class="quest-item" style="color:#4dfa62; border:none;" id="level-up-line">Level Up!</div>
     </div>
     <button class="return-btn" onclick="returnToDashboard()">Return to Core Hub</button>
   </div>
 
+  <script src="js/progress-api.js"></script>
   <script>
     'use strict';
 
@@ -958,8 +959,50 @@
       } else {err.style.color='#ff4d4d';err.innerText='✗ Wrong order!';playSound('failure');comboSlots=[null,null,null];renderCombination();}
     };
 
-    function triggerVictory(){playSound('victory');document.getElementById('quest-final').classList.add('completed');document.getElementById('victory-screen').style.display='flex';if(document.pointerLockElement)document.exitPointerLock();lockPrompt.style.display='none';}
-    function returnToDashboard(){window.location.href=`dashboard.html?earnedGold=250&victory=true`;}
+    // ─────────────────────────────────────────────────────────────
+    // VICTORY — the ONLY place coins/level get saved for this map.
+    // Awards a fixed 250 gold and +1 level, synced to the database
+    // through the same progress-api.js used by valley.html. Coins are
+    // queued locally first (see progress-api.js) so they survive a
+    // slow/failed network request; level only increments here, never
+    // from a partial run, a quit, or a refresh.
+    // ─────────────────────────────────────────────────────────────
+    async function triggerVictory(){
+      playSound('victory');
+      document.getElementById('quest-final').classList.add('completed');
+      document.getElementById('victory-screen').style.display='flex';
+      if (document.pointerLockElement) document.exitPointerLock();
+      lockPrompt.style.display='none';
+
+      const GOLD_REWARD = 250;
+      document.getElementById('earned-gold-value').innerText = GOLD_REWARD;
+
+      // Grab the level as it stands right now so we can show "before -> after".
+      const before = await fetchProgress();
+      const beforeLevel = before ? before.level : null;
+
+      syncCoins(GOLD_REWARD);              // queued + saved to the database
+      const newLevel = await completeLevel(); // +1 level, saved to the database
+
+      const lvlLine = document.getElementById('level-up-line');
+      if (newLevel !== null && beforeLevel !== null) {
+        lvlLine.innerText = `Level Up! LVL ${beforeLevel} → ${newLevel}`;
+      } else if (newLevel !== null) {
+        lvlLine.innerText = `Level Up! Now LVL ${newLevel}`;
+      } else {
+        lvlLine.innerText = `Level Up! (will sync once you're back online)`;
+      }
+
+      // Local-only flag used for the star marker on map.html — not part of
+      // the level/coins database sync, kept as-is from the original design.
+      let completed = JSON.parse(localStorage.getItem('nt_completed_maps') || '[]');
+      if (!completed.includes('lumbini_garden')) {
+        completed.push('lumbini_garden');
+        localStorage.setItem('nt_completed_maps', JSON.stringify(completed));
+      }
+    }
+
+    function returnToDashboard(){ window.location.href = 'dashboard.html'; }
 
     function showNotif(text){const t=document.createElement('div');t.style.cssText='position:fixed;top:20px;right:20px;background:rgba(197,160,89,0.95);color:#000;padding:12px 25px;border-radius:5px;font-weight:bold;font-size:0.9rem;box-shadow:0 10px 25px rgba(0,0,0,0.5);z-index:10000;';t.innerText=text;document.body.appendChild(t);setTimeout(()=>t.remove(),2500);}
 
