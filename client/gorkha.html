@@ -169,4 +169,25 @@
       </div>
     </div>
   </div>
+  <!-- Checkpoint 2 Modal: Riddle 2 -->
+  <div id="modal-checkpoint-2" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-title">Sacred Chronicle Riddle</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-checkpoint-2')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:15px; font-style:italic; border-left:2px solid var(--gold); padding-left:12px;">
+          "Gorkha Dynasty Riddle: Who was the king of Gorkha who unified the small kingdoms into modern Nepal?"
+        </p>
+        <div class="choices-list">
+          <div class="choice-item" onclick="submitRiddleAnswer(2, 'A')">A) King Jayasthiti Malla</div>
+          <div class="choice-item" onclick="submitRiddleAnswer(2, 'B')">B) King Prithvi Narayan Shah</div>
+          <div class="choice-item" onclick="submitRiddleAnswer(2, 'C')">C) King Pratap Malla</div>
+          <div class="choice-item" onclick="submitRiddleAnswer(2, 'D')">D) King Birendra Bir Bikram</div>
+        </div>
+        <div class="error-flash" id="riddle2-error"></div>
+      </div>
+    </div>
+  </div>
   
