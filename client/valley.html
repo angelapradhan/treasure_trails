@@ -1303,3 +1303,236 @@ function drawChest(){
   cx.strokeStyle='#8a6010';cx.lineWidth=1;cx.stroke();
   cx.restore();
 }
+
+// Stage 4 Lucky Wheel treasure seal — golden skull medallion, matches reference art
+function drawSeal(){
+  if(!G.seal||G.seal.collected)return;
+  const s=G.seal;
+  const bob=Math.sin(Date.now()*.0018)*3;
+  const pulse=.6+.4*Math.sin(Date.now()*.003);
+  cx.save();cx.translate(s.x,s.y+bob);
+  // shadow
+  cx.fillStyle='rgba(0,0,0,.3)';cx.beginPath();cx.ellipse(0,30,24,7,0,0,Math.PI*2);cx.fill();
+  // attention glow
+  const glow=cx.createRadialGradient(0,0,4,0,0,46*pulse);
+  glow.addColorStop(0,`rgba(240,200,90,${.4*pulse})`);glow.addColorStop(1,'transparent');
+  cx.fillStyle=glow;cx.fillRect(-50,-50,100,100);
+  // outer gold ring
+  cx.fillStyle='#c8a030';cx.beginPath();cx.arc(0,0,28,0,Math.PI*2);cx.fill();
+  cx.strokeStyle='#8a6010';cx.lineWidth=2;cx.stroke();
+  // teal ring
+  cx.fillStyle='#2e7d78';cx.beginPath();cx.arc(0,0,23,0,Math.PI*2);cx.fill();
+  // red inner ring
+  cx.fillStyle='#8a2a28';cx.beginPath();cx.arc(0,0,17,0,Math.PI*2);cx.fill();
+  // sunburst spikes on gold ring
+  cx.fillStyle='#e0b840';
+  for(let i=0;i<12;i++){
+    const a=i/12*Math.PI*2;
+    cx.beginPath();
+    cx.moveTo(Math.cos(a)*26,Math.sin(a)*26);
+    cx.lineTo(Math.cos(a+.06)*32,Math.sin(a+.06)*32);
+    cx.lineTo(Math.cos(a-.06)*32,Math.sin(a-.06)*32);
+    cx.closePath();cx.fill();
+  }
+  // black skull center
+  cx.fillStyle='#0c0c0c';cx.beginPath();cx.arc(0,0,12,0,Math.PI*2);cx.fill();
+  cx.fillStyle=`rgba(255,210,90,${.6+.4*Math.sin(Date.now()*.006)})`;
+  cx.beginPath();cx.arc(-4,-1,2.6,0,Math.PI*2);cx.arc(4,-1,2.6,0,Math.PI*2);cx.fill();
+  cx.fillStyle='#0c0c0c';cx.beginPath();cx.moveTo(0,1);cx.lineTo(-2.2,6);cx.lineTo(2.2,6);cx.closePath();cx.fill();
+  cx.fillStyle='rgba(255,210,90,.9)';
+  for(let i=0;i<3;i++)cx.fillRect(-4.5+i*4.2,7.5,2.4,2);
+  cx.restore();
+  // label
+  cx.fillStyle='#f0c840';cx.font='bold 11px Arial';cx.textAlign='center';
+  cx.fillText('LUCKY WHEEL',s.x,s.y+bob-42);
+  cx.textAlign='left';
+}
+
+function drawPlayer(){
+  const p=G.player;
+  const blink=p.inv>0&&Math.floor(p.inv*8)%2===0;if(blink)return;
+  cx.save();cx.translate(p.x,p.y);if(p.dir<0)cx.scale(-1,1);
+
+  const leg=Math.sin(p.animT)*5;
+  // shadow
+  cx.fillStyle='rgba(0,0,0,.28)';cx.beginPath();cx.ellipse(0,p.h/2,12,5,0,0,Math.PI*2);cx.fill();
+  // legs
+  cx.fillStyle='#2a2018';cx.fillRect(-7,8,6,13+Math.max(0,leg));cx.fillRect(2,8,6,13-Math.min(0,leg));
+  // boots
+  cx.fillStyle='#180e04';cx.fillRect(-8,18+Math.max(0,leg),8,7);cx.fillRect(1,18-Math.min(0,leg),8,7);
+  // body / jacket
+  cx.fillStyle='#7a4a28';cx.fillRect(-8,-4,16,14);
+  cx.fillStyle='#5a3418';cx.fillRect(-7,-3,14,6);
+  // belt
+  cx.fillStyle='#150e04';cx.fillRect(-8,8,16,3);cx.fillStyle='#c8a030';cx.fillRect(-3,8,6,3);
+  // arms
+  const arm=Math.sin(p.animT+Math.PI)*5;
+  cx.fillStyle='#7a4a28';cx.fillRect(8,-2+arm,5,12);cx.fillRect(-13,-2-arm,5,12);
+  // head
+  cx.fillStyle='#c89870';cx.beginPath();cx.ellipse(0,-13,8,9,0,0,Math.PI*2);cx.fill();
+  // hair
+  cx.fillStyle='#6a2a10';cx.beginPath();cx.ellipse(0,-19,8,5,0,0,Math.PI*2);cx.fill();
+  cx.fillStyle='#4a1a08';cx.fillRect(-5,-22,10,5);
+  // hat
+  cx.fillStyle='#2a1608';cx.fillRect(-11,-17,22,4);cx.fillRect(-7,-24,14,9);
+  // face
+  cx.fillStyle='#180800';cx.fillRect(1,-14,3,3);cx.fillRect(-4,-14,3,3);
+
+  // hp bar above
+  const bW=50,bH=7,bX=-25,bY=-p.h/2-18;
+  cx.fillStyle='rgba(0,0,0,.7)';cx.fillRect(bX-1,bY-1,bW+2,bH+2);
+  cx.fillStyle='#2a6a10';cx.fillRect(bX,bY,bW*(G.hp/G.maxHp),bH);
+  cx.fillStyle='rgba(255,255,255,.15)';cx.fillRect(bX,bY,bW*(G.hp/G.maxHp),bH/2);
+  // hp number
+  cx.fillStyle='#fff';cx.font='bold 11px Arial';cx.textAlign='center';
+  cx.fillText(G.hp,bX+bW/2,bY-3);
+
+  // direction arrow (like image - upward arrow guide)
+  if(G.stage===1&&!G.gateOpen){
+    const arr_y=p.h/2+15+Math.sin(Date.now()*.004)*6;
+    cx.fillStyle='rgba(200,180,100,.75)';
+    cx.beginPath();cx.moveTo(0,arr_y);cx.lineTo(10,arr_y+18);cx.lineTo(4,arr_y+18);cx.lineTo(4,arr_y+32);cx.lineTo(-4,arr_y+32);cx.lineTo(-4,arr_y+18);cx.lineTo(-10,arr_y+18);cx.closePath();cx.fill();
+    cx.strokeStyle='rgba(150,130,60,.8)';cx.lineWidth=1.5;cx.stroke();
+  }
+
+  cx.restore();
+}
+
+function drawParticles(){
+  G.particles.forEach(pt=>{
+    cx.globalAlpha=Math.max(0,pt.life/.7);cx.fillStyle=pt.col;
+    cx.beginPath();cx.arc(pt.x,pt.y,pt.sz,0,Math.PI*2);cx.fill();
+  });
+  cx.globalAlpha=1;
+}
+
+function drawVignette(){
+  const vg=cx.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.75);
+  vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,.5)');
+  cx.fillStyle=vg;cx.fillRect(0,0,W,H);
+}
+
+// ── HUD (drawn on canvas) ────────────────────────────────────────
+function drawHUD(){
+  // Top black bar - exact like image
+  cx.fillStyle='rgba(0,0,0,.85)';cx.fillRect(0,0,W,52);
+
+  // Pause button - top left (like image: square icon)
+  cx.fillStyle='rgba(255,255,255,.1)';roundRect(cx,8,8,36,36,6,'rgba(255,255,255,.08)');
+  cx.fillStyle='#fff';cx.fillRect(17,16,5,20);cx.fillRect(26,16,5,20);
+
+  // LEVEL X STAGE Y/5 text - centered black bar like image
+  cx.fillStyle='#fff';cx.font='bold 16px Arial';cx.textAlign='center';
+  cx.fillText(`LEVEL  ${G.level}    STAGE  ${G.stage} / ${G.maxStage}`,W/2,30);
+
+  // Coin icon + count - top right, perfect coin icon matching reference art
+  const coinX=W-70,coinY=10;
+  drawCoinIcon(coinX+14,coinY+14,14);
+  cx.fillStyle='#fff';cx.font='bold 15px Arial';cx.textAlign='left';
+  cx.fillText(G.coins,coinX+32,coinY+19);
+
+  // Progress bar - full width below text
+  cx.fillStyle='rgba(255,255,255,.12)';cx.fillRect(0,40,W,10);
+  cx.fillStyle='rgba(255,255,255,.5)';cx.fillRect(0,40,W*(G.stage/G.maxStage),10);
+
+  // Objectives panel (in-game checklist, like the reference mission panel)
+  drawObjectives();
+
+  // Joystick UI (drawn, not DOM)
+  drawJoystickUI();
+}
+
+function getObjectives(){
+  if(G.stageType==='combat'){
+    const obs=[
+      {text:`Defeat all crabs (${G.enemies.length} left)`, done:G.enemies.length===0}
+    ];
+    if(G.keyRequired) obs.push({text:'Collect the key from a crab', done:G.keyCollected});
+    obs.push({text:'Collect the dropped coins', done:G.pickups.length===0 && G.enemies.length===0});
+    if(G.seal){
+      if(G.stage>=G.maxStage){
+        obs.push({text: G.hasStage2Key ? 'Spin the Lucky Wheel to win the game' : 'Find the Stage 2 key to unlock the Lucky Wheel', done:G.seal.collected});
+      }else{
+        obs.push({text:'Find the Lucky Wheel seal (bonus)', done:G.seal.collected});
+      }
+    }
+    if(G.stage<G.maxStage) obs.push({text:'Enter the ancient gate', done:G.cleared});
+    return obs;
+  }
+  const obs=[];
+  if(G.stage===3){
+    obs.push({text:'Open the chest & solve the seal', done:G.keyCollected});
+  }else{
+    obs.push({text:'Dodge the falling rocks', done:G.gateOpened});
+    if(G.keyRequired) obs.push({text:'Open the chest & solve the seal', done:G.keyCollected});
+  }
+  obs.push({text:'Reach the ancient gate', done:G.cleared});
+  return obs;
+}
+
+function drawObjectives(){
+  const obs=getObjectives();
+  const px=10, py=58, pw=Math.min(270,W*.68), lh=19, ph=30+obs.length*lh;
+  cx.fillStyle='rgba(10,8,4,.78)';
+  cx.strokeStyle='rgba(200,164,106,.5)';cx.lineWidth=1.5;
+  cx.beginPath();cx.roundRect(px,py,pw,ph,8);cx.fill();cx.stroke();
+  cx.fillStyle='#c8a46a';cx.font='bold 11px Arial';cx.textAlign='left';
+  cx.fillText('OBJECTIVES',px+12,py+18);
+  obs.forEach((o,i)=>{
+    const oy=py+36+i*lh;
+    cx.fillStyle=o.done?'#5fae5f':'rgba(255,255,255,.85)';
+    cx.font='12px Arial';
+    cx.fillText((o.done?'✓ ':'○ ')+o.text,px+12,oy);
+  });
+  cx.textAlign='left';
+}
+
+function drawJoystickUI(){
+  // Big circular joystick at bottom center like image (tribal/compass design)
+  const jx=W/2, jy=H*.86, jr=65;
+  // Outer ring - semi transparent
+  cx.strokeStyle='rgba(180,140,90,.3)';cx.lineWidth=2;cx.beginPath();cx.arc(jx,jy,jr,0,Math.PI*2);cx.stroke();
+  // Tribal pattern
+  cx.strokeStyle='rgba(180,140,90,.2)';cx.lineWidth=1;
+  for(let i=0;i<12;i++){const a=i/12*Math.PI*2;cx.beginPath();cx.moveTo(jx+Math.cos(a)*jr*.6,jy+Math.sin(a)*jr*.6);cx.lineTo(jx+Math.cos(a)*jr*.9,jy+Math.sin(a)*jr*.9);cx.stroke();}
+  // inner compass rose
+  cx.fillStyle='rgba(160,120,70,.15)';cx.beginPath();cx.arc(jx,jy,jr*.45,0,Math.PI*2);cx.fill();
+  // Arrow indicators
+  [[0,-1,'▲'],[0,1,'▼'],[-1,0,'◄'],[1,0,'►']].forEach(([dx,dy,sym])=>{
+    cx.fillStyle='rgba(200,160,80,.4)';cx.font='13px Arial';cx.textAlign='center';cx.textBaseline='middle';
+    cx.fillText(sym,jx+dx*jr*.68,jy+dy*jr*.68);
+  });
+  // joystick knob if active
+  if(joy.on){
+    const kx=jx+joy.dx*(jr-20),ky=jy+joy.dy*(jr-20);
+    cx.fillStyle='rgba(200,160,80,.6)';cx.beginPath();cx.arc(kx,ky,22,0,Math.PI*2);cx.fill();
+    cx.strokeStyle='rgba(240,200,100,.8)';cx.lineWidth=2;cx.beginPath();cx.arc(kx,ky,22,0,Math.PI*2);cx.stroke();
+  }
+  cx.textBaseline='alphabetic';
+}
+
+function updateHUD(){/* handled in drawHUD each frame */}
+
+// ── INPUT ──────────────────────────────────────────────────────
+window.addEventListener('keydown',e=>{inp[e.key]=true;});
+window.addEventListener('keyup',e=>{inp[e.key]=false;});
+window.addEventListener('resize',()=>{if(gameOn){W=gc.width=window.innerWidth;H=gc.height=window.innerHeight;initStage();}resizeIntro();});
+
+function setupTouch(){
+  const jZone=document.createElement('div');
+  jZone.style.cssText='position:fixed;bottom:0;left:0;right:0;height:50vh;z-index:5;';
+  document.body.appendChild(jZone);
+  const JR=65;
+  function onStart(tx,ty){joy.on=true;joy.sx=tx;joy.sy=ty;joy.dx=0;joy.dy=0;}
+  function onMove(tx,ty){if(!joy.on)return;const dx=tx-joy.sx,dy=ty-joy.sy,d=Math.sqrt(dx*dx+dy*dy),cap=Math.min(d,JR);joy.dx=dx/d*(cap/JR)||0;joy.dy=dy/d*(cap/JR)||0;}
+  function onEnd(){joy.on=false;joy.dx=0;joy.dy=0;}
+  jZone.addEventListener('touchstart',e=>{e.preventDefault();const t=e.touches[0];onStart(t.clientX,t.clientY);},{passive:false});
+  jZone.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];onMove(t.clientX,t.clientY);},{passive:false});
+  jZone.addEventListener('touchend',e=>{e.preventDefault();onEnd();},{passive:false});
+  jZone.addEventListener('mousedown',e=>onStart(e.clientX,e.clientY));
+  window.addEventListener('mousemove',e=>onMove(e.clientX,e.clientY));
+  window.addEventListener('mouseup',onEnd);
+}
+</script>
+</body>
+</html>
