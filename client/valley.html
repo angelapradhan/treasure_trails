@@ -785,4 +785,92 @@ function update(dt){
     if(pt.life<=0)G.particles.splice(i,1);
   }
 
-  
+  // ── COMBAT STAGE LOGIC (stage 2, 4...) ──────────────────────
+  if(G.stageType==='combat'){
+    const chalf=G.cW/2-16;
+    // crabs scuttle side to side
+    G.enemies.forEach(en=>{
+      en.wobble+=dt*3;
+      en.x+=en.vx*en.spd*dt;
+      if(en.x<G.cX-chalf||en.x>G.cX+chalf) en.vx*=-1;
+      if(en.y<p.y-40) en.y+=10*dt;
+    });
+    // crab touches player -> damage
+    if(p.inv<=0){
+      for(let i=G.enemies.length-1;i>=0;i--){
+        const en=G.enemies[i];
+        const dx=en.x-p.x, dy=en.y-p.y;
+        if(Math.sqrt(dx*dx+dy*dy) < en.sz/2+14){ hitPlayer(); break; }
+      }
+    }
+    // Lara auto-shoots when standing still
+    const moving=ml>.1;
+    if(!moving){
+      G.shootTimer-=dt;
+      if(G.shootTimer<=0 && G.enemies.length>0){ fireBullet(); G.shootTimer=.35; }
+    }else{
+      G.shootTimer=Math.min(G.shootTimer,.15);
+    }
+    // bullets travel & hit crabs
+    for(let i=G.bullets.length-1;i>=0;i--){
+      const b=G.bullets[i];
+      b.x+=b.vx*dt; b.y+=b.vy*dt; b.life-=dt;
+      let hit=false;
+      for(let j=G.enemies.length-1;j>=0;j--){
+        const en=G.enemies[j];
+        const dx=en.x-b.x, dy=en.y-b.y;
+        if(Math.sqrt(dx*dx+dy*dy) < en.sz/2+6){
+          en.hp-=25; hit=true; playCrabHit();
+          for(let k=0;k<4;k++)G.particles.push({x:en.x,y:en.y,vx:(Math.random()-.5)*100,vy:(Math.random()-.5)*100,life:.3,col:'#c0392b',sz:2+Math.random()*3});
+          if(en.hp<=0){
+            // crab dies -> drops its key if it carried one, otherwise a coin pickup
+            if(en.hasKey){
+              G.pickups.push({x:en.x,y:en.y,val:0,bob:0,type:'key'});
+            }else{
+              G.pickups.push({x:en.x,y:en.y,val:8+Math.floor(Math.random()*6),bob:0,type:'coin'});
+            }
+            for(let k=0;k<8;k++)G.particles.push({x:en.x,y:en.y,vx:(Math.random()-.5)*160,vy:(Math.random()-.5)*160-40,life:.5,col:'#8a2010',sz:3+Math.random()*4});
+            G.enemies.splice(j,1); playEnemyDeath();
+          }
+          break;
+        }
+      }
+      if(hit||b.life<=0||b.y<0){ G.bullets.splice(i,1); }
+    }
+    // collect pickups by walking over them (coins or the crab's key)
+    for(let i=G.pickups.length-1;i>=0;i--){
+      const pk=G.pickups[i]; pk.bob+=dt*4;
+      const dx=pk.x-p.x, dy=pk.y-p.y;
+      if(Math.sqrt(dx*dx+dy*dy) < 26){
+        if(pk.type==='key'){ G.keyCollected=true; playCoinPickup(); if(G.stage===2){ G.hasStage2Key=true; } }
+        else{ awardCoins(pk.val); playCoinPickup(); }
+        G.pickups.splice(i,1);
+      }
+    }
+  }
+
+  // chest interaction (rock stages that hide the puzzle key)
+  if(G.chest && !G.chest.opened && !G.puzzleOpen && !G.keyCollected){
+    const dx=p.x-G.chest.x, dy=p.y-G.chest.y;
+    if(Math.sqrt(dx*dx+dy*dy) < 36){ openPuzzle(); }
+  }
+
+  // Lucky Wheel seal interaction (stage 4 treasure) — locked until the Stage 2 key is found
+  // AND this stage's own crabs are defeated, its key is collected, and all coins are picked up
+  if(G.seal && !G.seal.collected && !G.wheelOpen){
+    const dx=p.x-G.seal.x, dy=p.y-G.seal.y;
+    const nearSeal = Math.sqrt(dx*dx+dy*dy) < 40;
+    if(nearSeal){
+      const stageReady = G.enemies.length===0 && G.keyCollected && G.pickups.length===0;
+      if(G.hasStage2Key && stageReady){ openWheel(); }
+      else if(!G.sealLockedNotified){
+        G.sealLockedNotified=true;
+        if(!G.hasStage2Key) showNotif('The seal is locked — find the key in Stage 2!');
+        else if(G.enemies.length>0) showNotif('Defeat all the crabs first!');
+        else if(!G.keyCollected) showNotif('Collect the key first!');
+        else showNotif('Collect all the coins first!');
+      }
+    }else{
+      G.sealLockedNotified=false;
+    }
+  }
