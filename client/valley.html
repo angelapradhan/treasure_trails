@@ -727,3 +727,62 @@ function loop(ts){
   update(dt); draw(); drawHUD();
   requestAnimationFrame(loop);
 }
+
+// ── UPDATE ──────────────────────────────────────────────────────
+function update(dt){
+  if(G.puzzleOpen||G.wheelOpen)return;
+  const p=G.player;
+  let mvx=0,mvy=0;
+  if(inp['ArrowLeft']||inp['a'])mvx-=1;if(inp['ArrowRight']||inp['d'])mvx+=1;
+  if(inp['ArrowUp']||inp['w'])mvy-=1;if(inp['ArrowDown']||inp['s'])mvy+=1;
+  if(joy.on){mvx=joy.dx;mvy=joy.dy;}
+  const ml=Math.sqrt(mvx*mvx+mvy*mvy);
+  if(ml>1){mvx/=ml;mvy/=ml;}
+  if(Math.abs(mvx)>.05)p.dir=mvx>0?1:-1;
+  if(ml>.1)p.animT+=dt*7;
+
+  p.x+=mvx*p.spd*dt; p.y+=mvy*p.spd*dt;
+  // clamp to corridor
+  const half=G.cW/2-14;
+  p.x=Math.max(G.cX-half,Math.min(G.cX+half,p.x));
+  // once the gate is open, let the player walk through it (up past the old wall)
+  const minY = G.gateOpen ? (G.gateY-60) : (G.gateY+G.gateH+10);
+  p.y=Math.max(minY,Math.min(H*.92,p.y));
+
+  // invincibility
+  if(p.inv>0)p.inv-=dt;
+
+  // rock spawn (falling-rock stages only — stage 3 has the rocks removed, puzzle only)
+  if(G.stageType!=='combat' && G.stage!==3){
+    G.rockTimer-=dt;
+    if(G.rockTimer<=0&&!G.cleared){
+      G.rockTimer=G.rockInt;
+      spawnRock();
+    }
+  }
+
+  // update rocks & warnings
+  const rSpd=120+G.stage*6;
+  for(let i=G.rocks.length-1;i>=0;i--){
+    const r=G.rocks[i];
+    r.y+=rSpd*dt; r.rot+=dt*r.rs;
+    if(r.y>H+80){G.rocks.splice(i,1);continue;}
+    // hit check
+    if(p.inv<=0){
+      if(Math.abs(r.x-p.x)<(r.sz/2+12)&&Math.abs(r.y-p.y)<(r.sz/2+14)){
+        hitPlayer(); G.rocks.splice(i,1); continue;
+      }
+    }
+  }
+  // warnings fade
+  for(let i=G.warnings.length-1;i>=0;i--){
+    G.warnings[i].age+=dt;
+    if(G.warnings[i].age>G.warnings[i].life)G.warnings.splice(i,1);
+  }
+  // particles
+  for(let i=G.particles.length-1;i>=0;i--){
+    const pt=G.particles[i];pt.x+=pt.vx*dt;pt.y+=pt.vy*dt;pt.vy+=120*dt;pt.life-=dt;
+    if(pt.life<=0)G.particles.splice(i,1);
+  }
+
+  
