@@ -190,4 +190,25 @@
       </div>
     </div>
   </div>
+  <!-- Checkpoint 3 Modal: Riddle 3 -->
+  <div id="modal-checkpoint-3" class="modal-overlay">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h2 class="modal-title">Architectural Decipher</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-checkpoint-3')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom:15px; font-style:italic; border-left:2px solid var(--gold); padding-left:12px;">
+          "Gorkha Weapon Riddle: What is the traditional Nepalese curved knife carried by the Gorkhas as a symbol of courage?"
+        </p>
+        <div class="choices-list">
+          <div class="choice-item" onclick="submitRiddleAnswer(3, 'A')">A) Kukri (Khukuri)</div>
+          <div class="choice-item" onclick="submitRiddleAnswer(3, 'B')">B) Katana</div>
+          <div class="choice-item" onclick="submitRiddleAnswer(3, 'C')">C) Scimitar</div>
+          <div class="choice-item" onclick="submitRiddleAnswer(3, 'D')">D) Rapier</div>
+        </div>
+        <div class="error-flash" id="riddle3-error"></div>
+      </div>
+    </div>
+  </div>
   
