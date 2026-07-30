@@ -49,3 +49,45 @@ canvas{display:block;}
 </head>
 <body>
 
+<!-- INTRO -->
+<div id="intro">
+  <canvas id="intro-canvas"></canvas>
+  <div class="intro-title">TOMB TRAILS</div>
+  <div class="intro-text">
+    <div class="intro-story">
+      Deep within the frozen mountains, an ancient tomb has awakened...<br>
+      Its corridors breathe with the cold of ten thousand cursed winters...<br>
+      Only one reckless soul dares to venture in. That soul is you.
+    </div>
+  </div>
+  <div class="intro-tap" onclick="startGame()">— TAP TO ENTER —</div>
+</div>
+
+<!-- GAME CANVAS -->
+<canvas id="gc"></canvas>
+
+<!-- DAMAGE FLASH -->
+<div id="flash"></div>
+
+<!-- GAME OVER -->
+<div id="gameover">
+  <div class="ov-title" style="color:#c0392b;">YOU DIED</div>
+  <div class="ov-sub">The tomb claims another soul...</div>
+  <button class="ov-btn" onclick="restartGame()">TRY AGAIN</button>
+</div>
+
+<!-- FINAL VICTORY (only triggered by completing the Lucky Wheel on the last stage) -->
+<div id="gamewin">
+  <div class="ov-title" style="color:#f0c840;">TOMB CONQUERED!</div>
+  <div class="ov-sub">You spun the Lucky Wheel and claimed the ancient treasure</div>
+  <div style="color:#f0c040;font-family:Arial,sans-serif;font-size:24px;font-weight:bold;margin:10px 0;">🪙 <span id="finalcoins">0</span> TOTAL COINS</div>
+  <div class="ov-sub" style="margin-top:6px;">Returning to the map...</div>
+</div>
+
+<!-- STAGE CLEAR (auto-advances, no button) -->
+<div id="winpanel" class="stageclear-toast">
+  <div class="ov-title" style="color:#c8a46a;">STAGE CLEAR!</div>
+  <div class="ov-sub">The ancient gate yields before you</div>
+  <div style="color:#f0c040;font-family:Arial,sans-serif;font-size:22px;font-weight:bold;margin:6px 0;">+ <span id="wcoins">0</span> COINS</div>
+</div>
+
