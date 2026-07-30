@@ -314,3 +314,67 @@ function playWheelWin(){
     o.start(t+i*.09);o.stop(t+i*.09+.55);
   });
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  INTRO ANIMATION
+// ═══════════════════════════════════════════════════════════════
+const iC=document.getElementById('intro-canvas');
+const iX=iC.getContext('2d');
+let introT=0,introRunning=true;
+function resizeIntro(){iC.width=window.innerWidth;iC.height=window.innerHeight;}
+resizeIntro();
+
+function animIntro(){
+  if(!introRunning)return;
+  const W=iC.width,H=iC.height; introT+=.008;
+  iX.fillStyle='#000';iX.fillRect(0,0,W,H);
+  // starfield
+  for(let i=0;i<80;i++){
+    const sx=(i*173.1)%W,sy=(i*97.3)%H,f=.3+.7*Math.abs(Math.sin(introT*1.2+i*.5));
+    iX.fillStyle=`rgba(220,210,180,${f*.55})`;iX.beginPath();iX.arc(sx,sy,.8,0,Math.PI*2);iX.fill();
+  }
+  // mountain silhouettes
+  const mts=[[0,.7],[.1,.4],[.2,.6],[.28,.25],[.38,.5],[.48,.18],[.58,.42],[.68,.12],[.78,.35],[.88,.52],[1,.65],[1,1],[0,1]];
+  iX.fillStyle='#0a0806';iX.beginPath();iX.moveTo(0,H);
+  mts.forEach(([x,y])=>iX.lineTo(x*W,y*H));iX.closePath();iX.fill();
+  // snow on peaks
+  [[.28,.25],[.48,.18],[.68,.12]].forEach(([px,py])=>{
+    iX.fillStyle='rgba(200,220,240,.15)';
+    iX.beginPath();iX.moveTo(px*W,py*H);iX.lineTo((px-.06)*W,(py+.1)*H);iX.lineTo((px+.06)*W,(py+.1)*H);iX.closePath();iX.fill();
+  });
+  // fog
+  for(let i=0;i<4;i++){
+    const fx=((introT*15*(i+1))%(W+300))-150,fy=H*.5+Math.sin(introT*.4+i)*20;
+    const fg=iX.createRadialGradient(fx,fy,0,fx,fy,W*.45);
+    fg.addColorStop(0,`rgba(30,18,6,${.1-i*.02})`);fg.addColorStop(1,'transparent');
+    iX.fillStyle=fg;iX.fillRect(0,0,W,H);
+  }
+  // rune
+  const pulse=.55+.45*Math.sin(introT*2.2);
+  const rx=W/2,ry=H*.38;
+  const rg=iX.createRadialGradient(rx,ry,0,rx,ry,70*pulse);
+  rg.addColorStop(0,`rgba(200,164,106,${.15*pulse})`);rg.addColorStop(1,'transparent');
+  iX.fillStyle=rg;iX.fillRect(rx-80,ry-80,160,160);
+  iX.save();iX.translate(rx,ry);iX.rotate(introT*.06);
+  iX.strokeStyle=`rgba(200,164,106,${.28*pulse})`;iX.lineWidth=1.5;
+  iX.beginPath();iX.arc(0,0,22,0,Math.PI*2);iX.stroke();
+  for(let i=0;i<6;i++){const a=i/6*Math.PI*2;iX.beginPath();iX.moveTo(Math.cos(a)*14,Math.sin(a)*14);iX.lineTo(Math.cos(a+.5)*32,Math.sin(a+.5)*32);iX.stroke();}
+  iX.restore();
+  // vignette
+  const vg=iX.createRadialGradient(W/2,H/2,H*.1,W/2,H/2,H*.85);
+  vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(0,0,0,.9)');
+  iX.fillStyle=vg;iX.fillRect(0,0,W,H);
+  requestAnimationFrame(animIntro);
+}
+animIntro();
+document.addEventListener('click',()=>ra(),{once:true});
+setTimeout(()=>{try{playMystery();}catch(e){}},200);
+
+// ═══════════════════════════════════════════════════════════════
+//  GAME
+// ═══════════════════════════════════════════════════════════════
+const gc=document.getElementById('gc');
+const cx=gc.getContext('2d');
+let W,H,gameOn=false,lastT=0;
+let inp={};
+let joy={on:false,sx:0,sy:0,dx:0,dy:0};
