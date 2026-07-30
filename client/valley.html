@@ -484,3 +484,128 @@ function fireBullet(){
   G.bullets.push({x:p.x,y:p.y-20,vx:tx*420,vy:ty*420,life:1.2});
   playShoot();
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  MUKTINATH JIGSAW SEAL (chest puzzle) — canvas-based jigsaw
+// ═══════════════════════════════════════════════════════════════
+let jigsawTimerVal=30, jigsawTimerInterval=null, jigsawTiles=[], jigsawSelectedIdx=null;
+const pieceSize=80;
+let jigsawCanvas=null, jigsawCtx=null;
+const offscreenImg=document.createElement('canvas'); offscreenImg.width=240; offscreenImg.height=240;
+const oCtx=offscreenImg.getContext('2d');
+oCtx.fillStyle='#1c0f05'; oCtx.fillRect(0,0,240,240);
+oCtx.fillStyle='#ff7a3d'; oCtx.fillRect(20,180,200,60);
+oCtx.fillStyle='#8b2b2b'; oCtx.fillRect(60,100,120,80);
+oCtx.fillStyle='#c5a059'; oCtx.fillRect(110,120,20,60);
+oCtx.fillStyle='#c5a059'; oCtx.beginPath(); oCtx.moveTo(40,100); oCtx.lineTo(200,100); oCtx.lineTo(120,60); oCtx.closePath(); oCtx.fill();
+oCtx.fillStyle='#ffd700'; oCtx.fillRect(115,20,10,40); oCtx.beginPath(); oCtx.moveTo(105,30); oCtx.lineTo(135,30); oCtx.lineTo(120,10); oCtx.closePath(); oCtx.fill();
+oCtx.fillStyle='#b08b46'; for(let i=0;i<8;i++) oCtx.fillRect(70+i*13,160,6,8);
+
+function openPuzzle(){
+  G.puzzleOpen=true;
+  document.getElementById('puzzle').style.display='flex';
+  if(!jigsawCanvas){
+    jigsawCanvas=document.getElementById('jigsaw-canvas');
+    jigsawCtx=jigsawCanvas.getContext('2d');
+    jigsawCanvas.onclick=function(e){
+      const r=jigsawCanvas.getBoundingClientRect();
+      const clicked=Math.floor((e.clientY-r.top)/pieceSize)*3+Math.floor((e.clientX-r.left)/pieceSize);
+      if(jigsawSelectedIdx===null){
+        jigsawSelectedIdx=clicked;
+      }else{
+        [jigsawTiles[jigsawSelectedIdx],jigsawTiles[clicked]]=[jigsawTiles[clicked],jigsawTiles[jigsawSelectedIdx]];
+        jigsawSelectedIdx=null;
+        renderJigsawCanvas();
+        checkJigsawSolved();
+        return;
+      }
+      renderJigsawCanvas();
+    };
+  }
+  initJigsawPuzzle();
+}
+
+function initJigsawPuzzle(){
+  jigsawTimerVal=30;
+  document.getElementById('jigsaw-timer-display').textContent=jigsawTimerVal+'s';
+  document.getElementById('jigsaw-timer-display').style.color='#c0392b';
+  document.getElementById('jigsaw-status').textContent='';
+  jigsawSelectedIdx=null;
+  jigsawTiles=[]; for(let i=0;i<9;i++) jigsawTiles.push(i);
+  do{
+    for(let i=jigsawTiles.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[jigsawTiles[i],jigsawTiles[j]]=[jigsawTiles[j],jigsawTiles[i]];}
+  }while(jigsawTiles.every((v,i)=>v===i));
+  renderJigsawCanvas();
+  if(jigsawTimerInterval) clearInterval(jigsawTimerInterval);
+  jigsawTimerInterval=setInterval(()=>{
+    jigsawTimerVal--;
+    document.getElementById('jigsaw-timer-display').textContent=jigsawTimerVal+'s';
+    if(jigsawTimerVal<=0){ clearInterval(jigsawTimerInterval); handleJigsawFailure(); }
+  },1000);
+}
+
+function renderJigsawCanvas(){
+  if(!jigsawCtx)return;
+  jigsawCtx.clearRect(0,0,240,240);
+  for(let i=0;i<9;i++){
+    const pi=jigsawTiles[i], row=Math.floor(i/3), col=i%3;
+    jigsawCtx.drawImage(offscreenImg,(pi%3)*pieceSize,Math.floor(pi/3)*pieceSize,pieceSize,pieceSize,col*pieceSize,row*pieceSize,pieceSize,pieceSize);
+    jigsawCtx.strokeStyle='rgba(197,160,89,0.4)'; jigsawCtx.strokeRect(col*pieceSize,row*pieceSize,pieceSize,pieceSize);
+    if(jigsawSelectedIdx===i){ jigsawCtx.fillStyle='rgba(255,255,255,0.28)'; jigsawCtx.fillRect(col*pieceSize,row*pieceSize,pieceSize,pieceSize); }
+  }
+}
+
+let tileBitmaps=null;
+function buildTileBitmaps(){
+  if(tileBitmaps)return;
+  tileBitmaps=[];
+  const tmp=document.createElement('canvas');tmp.width=pieceSize;tmp.height=pieceSize;
+  const tctx=tmp.getContext('2d');
+  for(let i=0;i<9;i++){
+    const col=i%3, row=Math.floor(i/3);
+    tctx.clearRect(0,0,pieceSize,pieceSize);
+    tctx.drawImage(offscreenImg,col*pieceSize,row*pieceSize,pieceSize,pieceSize,0,0,pieceSize,pieceSize);
+    tileBitmaps.push(tctx.getImageData(0,0,pieceSize,pieceSize).data);
+  }
+}
+function bitmapsEqual(a,b){
+  if(a.length!==b.length)return false;
+  for(let i=0;i<a.length;i+=8){ if(a[i]!==b[i]||a[i+1]!==b[i+1]||a[i+2]!==b[i+2])return false; }
+  return true;
+}
+
+function checkJigsawSolved(){
+  buildTileBitmaps();
+  let solved=true;
+  for(let i=0;i<9;i++){
+    if(!bitmapsEqual(tileBitmaps[jigsawTiles[i]],tileBitmaps[i])){ solved=false; break; }
+  }
+  if(solved){
+    clearInterval(jigsawTimerInterval);
+    document.getElementById('jigsaw-status').style.color='#5fae5f';
+    document.getElementById('jigsaw-status').textContent='✓ Seal Unlocked!';
+    playGateOpen();
+    setTimeout(()=>{
+      document.getElementById('puzzle').style.display='none';
+      G.puzzleOpen=false;
+      G.keyCollected=true;
+      if(G.chest) G.chest.opened=true;
+    },1200);
+  }
+}
+
+function handleJigsawFailure(){
+  document.getElementById('jigsaw-timer-display').style.color='#888';
+  document.getElementById('jigsaw-status').style.color='#c0392b';
+  document.getElementById('jigsaw-status').textContent='Time expired! Lost 1 life. Retry...';
+  hitPlayer();
+  setTimeout(()=>{
+    if(G.hp>0 && G.lives>0){
+      initJigsawPuzzle();
+    }else{
+      document.getElementById('puzzle').style.display='none';
+      G.puzzleOpen=false;
+      G.player.y+=44;
+    }
+  },1500);
+}
