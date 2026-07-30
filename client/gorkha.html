@@ -211,4 +211,48 @@
       </div>
     </div>
   </div>
+  <!-- Main Vault combination slot overlay -->
+  <div id="modal-combination" class="modal-overlay">
+    <div class="modal-container" style="width:520px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Ancient Seal Combination</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-combination')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="text-align:center; margin-bottom:15px;">Place the 3 relic fragments in the slots in order of altitude (Lumbini Plains &rarr; Kathmandu Valley &rarr; Himal Caves) to crack the security mechanism.</p>
+        <div class="combination-slots">
+          <div class="combo-slot" id="slot-0" onclick="removeFragment(0)"></div>
+          <div class="combo-slot" id="slot-1" onclick="removeFragment(1)"></div>
+          <div class="combo-slot" id="slot-2" onclick="removeFragment(2)"></div>
+        </div>
+        <div style="text-align:center; font-size:0.75rem; color:#888; margin-bottom:8px;">Relic Inventory Pool — click to place:</div>
+        <div class="fragments-pool" id="fragments-pool-container"></div>
+        <div class="error-flash" id="combo-error" style="margin-top:15px;"></div>
+        <button class="modal-action-btn" onclick="checkCombinationSubmit()" style="margin-top:10px;">Activate Seal</button>
+      </div>
+    </div>
+  </div>
+  <div id="modal-warning" class="modal-overlay">
+    <div class="modal-container" style="width:380px;">
+      <div class="modal-header">
+        <h2 class="modal-title" style="color:#ff4d4d;">Seal Sealed</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-warning')">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p style="font-size:1.1rem; font-weight:bold; margin-bottom:15px;">"The locking mechanisms require 3 specific fragments. Keep exploring!"</p>
+        <p style="font-size:0.8rem; color:#888;">You have only collected <span id="warning-pieces-collected" style="color:var(--gold); font-weight:bold;">0/3</span> fragments. Seek the glowing beacons across the map.</p>
+        <button class="modal-action-btn" onclick="closeOverlay('modal-warning')" style="margin-top:20px;">Resume Quest</button>
+      </div>
+    </div>
+  </div>
+  <div id="victory-screen" class="victory-overlay">
+    <div class="victory-banner">Victory Claimed</div>
+    <div class="victory-subtitle">You cracked the Ancient Chest and recovered the Sacred Nepal Artifacts!</div>
+    <div class="loot-card">
+      <div class="hud-title">Expedition Rewards</div>
+      <div class="loot-row">🪙 <span id="earned-gold-value">250</span> Gold Coins</div>
+      <div class="quest-item" style="color:#4dfa62; border:none;">Level Up! LVL 14 &rarr; 15</div>
+    </div>
+    <button class="return-btn" onclick="returnToDashboard()">Return to Core Hub</button>
+  </div>
   
