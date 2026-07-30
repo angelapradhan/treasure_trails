@@ -1226,3 +1226,80 @@ function drawBullets(){
     cx.fillStyle='#fff4c0';cx.beginPath();cx.arc(b.x,b.y,3.5,0,Math.PI*2);cx.fill();
   });
 }
+
+// Reusable "perfect coin" renderer — matches the HUD coin icon exactly.
+function drawCoinIcon(x,y,r){
+  cx.save();cx.translate(x,y);
+  const cg=cx.createRadialGradient(-r*.3,-r*.3,r*.15,0,0,r);
+  cg.addColorStop(0,'#fff4c0');cg.addColorStop(.45,'#ffe060');cg.addColorStop(.8,'#f0a000');cg.addColorStop(1,'#c07800');
+  cx.fillStyle=cg;cx.beginPath();cx.arc(0,0,r,0,Math.PI*2);cx.fill();
+  // gear teeth ring
+  cx.strokeStyle='#804000';cx.lineWidth=Math.max(1.4,r*.14);
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2;
+    cx.beginPath();
+    cx.moveTo(Math.cos(a)*r*.78,Math.sin(a)*r*.78);
+    cx.lineTo(Math.cos(a)*r,Math.sin(a)*r);
+    cx.stroke();
+  }
+  // inner ring
+  cx.beginPath();cx.arc(0,0,r*.5,0,Math.PI*2);cx.strokeStyle='#804000';cx.lineWidth=Math.max(1,r*.1);cx.stroke();
+  // outer rim highlight
+  cx.beginPath();cx.arc(0,0,r*.96,0,Math.PI*2);cx.strokeStyle='rgba(255,255,255,.35)';cx.lineWidth=1;cx.stroke();
+  // shine
+  cx.fillStyle='rgba(255,255,255,.55)';cx.beginPath();cx.ellipse(-r*.3,-r*.3,r*.22,r*.14,-.5,0,Math.PI*2);cx.fill();
+  cx.restore();
+}
+
+function drawPickups(){
+  G.pickups.forEach(pk=>{
+    const y=pk.y+Math.sin(pk.bob)*4;
+    if(pk.type==='key'){
+      cx.save();cx.translate(pk.x,y);
+      const glow=cx.createRadialGradient(0,0,0,0,0,18);
+      glow.addColorStop(0,'rgba(255,220,100,.55)');glow.addColorStop(1,'transparent');
+      cx.fillStyle=glow;cx.fillRect(-18,-18,36,36);
+      cx.rotate(Math.sin(Date.now()*.003)*.3);
+      cx.fillStyle='#f0c840';
+      cx.beginPath();cx.arc(-5,0,5,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#2a1a06';cx.beginPath();cx.arc(-5,0,2,0,Math.PI*2);cx.fill();
+      cx.fillStyle='#f0c840';cx.fillRect(-1,-2,11,4);
+      cx.fillRect(6,2,2,4);
+      cx.fillRect(9,2,2,5);
+      cx.strokeStyle='#8a6010';cx.lineWidth=1;cx.beginPath();cx.arc(-5,0,5,0,Math.PI*2);cx.stroke();
+      cx.restore();
+    }else{
+      // perfect coin (same design used in stage 2 & stage 4 combat drops)
+      const glow=cx.createRadialGradient(pk.x,y,1,pk.x,y,16);
+      glow.addColorStop(0,'rgba(255,220,100,.35)');glow.addColorStop(1,'transparent');
+      cx.fillStyle=glow;cx.fillRect(pk.x-16,y-16,32,32);
+      drawCoinIcon(pk.x,y,10);
+    }
+  });
+}
+
+function drawChest(){
+  if(!G.chest||G.chest.opened)return;
+  const ch=G.chest;
+  const bob=Math.sin(Date.now()*.002)*2;
+  cx.save();cx.translate(ch.x,ch.y+bob);
+  // glow ring to draw attention
+  const glow=cx.createRadialGradient(0,4,4,0,4,34);
+  glow.addColorStop(0,'rgba(200,164,106,.35)');glow.addColorStop(1,'transparent');
+  cx.fillStyle=glow;cx.fillRect(-34,-30,68,68);
+  // shadow
+  cx.fillStyle='rgba(0,0,0,.3)';cx.beginPath();cx.ellipse(0,20,20,6,0,0,Math.PI*2);cx.fill();
+  // chest base
+  cx.fillStyle='#4a3018';cx.fillRect(-18,-2,36,20);
+  cx.strokeStyle='#2a1808';cx.lineWidth=1.5;cx.strokeRect(-18,-2,36,20);
+  // chest lid
+  cx.fillStyle='#5a3c20';cx.beginPath();
+  cx.moveTo(-18,-2);cx.quadraticCurveTo(0,-22,18,-2);cx.closePath();cx.fill();
+  cx.strokeStyle='#2a1808';cx.stroke();
+  // gold bands
+  cx.fillStyle='#c8a030';cx.fillRect(-18,-3,36,4);cx.fillRect(-3,-2,6,20);
+  // lock
+  cx.fillStyle='#f0c840';cx.beginPath();cx.arc(0,6,5,0,Math.PI*2);cx.fill();
+  cx.strokeStyle='#8a6010';cx.lineWidth=1;cx.stroke();
+  cx.restore();
+}
