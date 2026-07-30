@@ -609,3 +609,121 @@ function handleJigsawFailure(){
     }
   },1500);
 }
+
+// ═══════════════════════════════════════════════════════════════
+//  LUCKY WHEEL (stage 4 treasure seal — spin for a coin multiplier)
+// ═══════════════════════════════════════════════════════════════
+const wheelSegments=[
+  {v:250,c:'#7c3fa0'},{v:200,c:'#1f5f75'},{v:225,c:'#245e78'},{v:250,c:'#7c3fa0'},
+  {v:175,c:'#1f5f75'},{v:225,c:'#245e78'},{v:200,c:'#1f5f75'},{v:175,c:'#245e78'}
+];
+let wheelSpinning=false;
+
+function polarPt(cx0,cy0,r,angDeg){
+  const rad=(angDeg-90)*Math.PI/180;
+  return {x:cx0+r*Math.cos(rad), y:cy0+r*Math.sin(rad)};
+}
+
+function buildWheelSvg(){
+  const svg=document.getElementById('wheelSvg');
+  if(svg.dataset.built)return;
+  svg.dataset.built='1';
+  const c0=150, r=142, n=wheelSegments.length, seg=360/n;
+  let html='';
+  // outer gold rim
+  html+=`<circle cx="${c0}" cy="${c0}" r="${r+4}" fill="none" stroke="#c8a030" stroke-width="6"/>`;
+  wheelSegments.forEach((s,i)=>{
+    const a0=i*seg, a1=(i+1)*seg;
+    const p0=polarPt(c0,c0,r,a0), p1=polarPt(c0,c0,r,a1);
+    const large=seg>180?1:0;
+    html+=`<path d="M${c0},${c0} L${p0.x.toFixed(1)},${p0.y.toFixed(1)} A${r},${r} 0 ${large} 1 ${p1.x.toFixed(1)},${p1.y.toFixed(1)} Z" fill="${s.c}" stroke="#e0b840" stroke-width="2"/>`;
+    const mid=a0+seg/2;
+    const tp=polarPt(c0,c0,r*0.62,mid);
+    html+=`<text x="${tp.x.toFixed(1)}" y="${tp.y.toFixed(1)}" fill="#f0d060" font-size="17" font-weight="bold" font-family="Arial" text-anchor="middle" dominant-baseline="middle" transform="rotate(${mid.toFixed(1)},${tp.x.toFixed(1)},${tp.y.toFixed(1)})">x${s.v}</text>`;
+  });
+  // tick marks
+  for(let i=0;i<n;i++){
+    const p=polarPt(c0,c0,r+4,i*seg);
+    html+=`<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="#f0c840"/>`;
+  }
+  svg.innerHTML=html;
+}
+
+function openWheel(){
+  G.wheelOpen=true;
+  buildWheelSvg();
+  const svg=document.getElementById('wheelSvg');
+  document.getElementById('wheelMsg').textContent='';
+  document.getElementById('wheelSpinBtn').disabled=false;
+  document.getElementById('wheelSpinBtn').style.opacity='1';
+  svg.style.transition='none';
+  svg.style.transform='rotate(0deg)';
+  void svg.offsetWidth;
+  svg.style.transition='transform 4s cubic-bezier(.12,.72,.14,1)';
+  document.getElementById('wheelPanel').style.display='flex';
+  ra();
+}
+
+function spinWheel(){
+  if(wheelSpinning)return;
+  wheelSpinning=true;
+  const btn=document.getElementById('wheelSpinBtn');
+  btn.disabled=true;btn.style.opacity='.5';
+  document.getElementById('wheelMsg').textContent='';
+  playWheelSpin();
+  const idx=Math.floor(Math.random()*wheelSegments.length);
+  const seg=360/wheelSegments.length;
+  const targetCenter=idx*seg+seg/2;
+  const spins=6;
+  const rotation=spins*360+(360-targetCenter);
+  document.getElementById('wheelSvg').style.transform=`rotate(${rotation}deg)`;
+  setTimeout(()=>{
+    const mult=wheelSegments[idx].v;
+    const earned=Math.round(20*mult/100);
+    awardCoins(earned);
+    playWheelWin();
+    document.getElementById('wheelMsg').textContent=`x${mult} LUCK! +${earned} COINS`;
+    setTimeout(()=>{
+      document.getElementById('wheelPanel').style.display='none';
+      G.wheelOpen=false;
+      if(G.seal) G.seal.collected=true;
+      wheelSpinning=false;
+      if(G.stage>=G.maxStage){ finishGameVictory(); }
+    },1500);
+  },4050);
+}
+
+function finishGameVictory(){
+  gameOn=false;
+  playWin();
+  document.getElementById('finalcoins').textContent=G.coins;
+  document.getElementById('gamewin').style.display='flex';
+  completeLevel();
+  setTimeout(()=>{ window.location.href='map.html'; },3000);
+}
+
+function showNotif(text){
+  const t=document.createElement('div');
+  t.className='game-notif';
+  t.textContent=text;
+  document.body.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; },2400);
+  setTimeout(()=>{ t.remove(); },2900);
+}
+
+function startGame(){
+  introRunning=false;
+  document.getElementById('intro').style.display='none';
+  gc.style.display='block';
+  W=gc.width=window.innerWidth; H=gc.height=window.innerHeight;
+  initG(); initStage(); gameOn=true; lastT=performance.now();
+  setupTouch();
+  requestAnimationFrame(loop);
+}
+
+function loop(ts){
+  if(!gameOn)return;
+  const dt=Math.min((ts-lastT)/1000,.05);lastT=ts;
+  update(dt); draw(); drawHUD();
+  requestAnimationFrame(loop);
+}
