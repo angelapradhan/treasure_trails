@@ -643,4 +643,73 @@
       const obj = document.getElementById(cp?.qid || '');
       if (obj) obj.classList.add('completed');
     }
-    
+    // Combination Lock
+    function openCombinationModal() { comboSlots = [null, null, null]; renderCombination(); openOverlay('modal-combination'); }
+    function renderCombination() {
+      for (let i = 0; i < 3; i++) {
+        const slot = document.getElementById(`slot-${i}`); slot.innerHTML = '';
+        if (comboSlots[i]) {
+          const item = comboSlots[i], token = document.createElement('div');
+          token.className = 'fragment-token';
+          token.innerHTML = `<div style="font-size:1.4rem">${item.icon}</div><div style="margin-top:2px">${item.name.split(" ")[1]}</div><div style="opacity:0.6; font-size:0.5rem">${item.sub.split(" ")[0]}</div>`;
+          token.onclick = () => removeFragment(i); slot.appendChild(token);
+        }
+      }
+      const pool = document.getElementById('fragments-pool-container'); pool.innerHTML = '';
+      inventory.forEach(item => {
+        if (comboSlots.includes(item)) return;
+        const token = document.createElement('div');
+        token.className = 'fragment-token';
+        token.innerHTML = `<div style="font-size:1.4rem">${item.icon}</div><div style="margin-top:2px">${item.name.split(" ")[1]}</div><div style="opacity:0.6; font-size:0.5rem">${item.sub.split(" ")[0]}</div>`;
+        token.onclick = () => placeFragment(item); pool.appendChild(token);
+      });
+      document.getElementById('combo-error').innerText = '';
+    }
+    function placeFragment(item) {
+      const idx = comboSlots.indexOf(null);
+      if (idx === -1) {
+        const err = document.getElementById('combo-error');
+        err.style.color = '#ff4d4d'; err.innerText = 'Slots are filled! Remove a token first.';
+        playSound('failure'); return;
+      }
+      comboSlots[idx] = item; playSound('tick'); renderCombination();
+    }
+    function removeFragment(index) { comboSlots[index] = null; playSound('tick'); renderCombination(); }
+    function checkCombinationSubmit() {
+      const err = document.getElementById('combo-error');
+      if (comboSlots.includes(null)) { err.style.color = '#ff4d4d'; err.innerText = 'All three slots must be loaded.'; playSound('failure'); return; }
+      
+      // Altitude order validation: Plains (Lowest) -> Valley (Medium) -> Caves (Highest)
+      // Array values: frag_b, frag_c, frag_a
+      if (['frag_b', 'frag_c', 'frag_a'].every((id, idx) => comboSlots[idx]?.id === id)) {
+        err.style.color = '#4dfa62'; err.innerText = '✓ SEAL CRACKED!'; playSound('success');
+        setTimeout(() => { closeOverlay('modal-combination'); solveCP(4); triggerVictory(); }, 1500);
+      } else {
+        err.style.color = '#ff4d4d'; err.innerText = '✗ Wrong order! Rearrange altitude parameters.'; playSound('failure');
+        comboSlots = [null, null, null]; renderCombination();
+      }
+    }
+    // Victory
+    function triggerVictory() {
+      playSound('victory');
+      document.getElementById('quest-final').classList.add('completed');
+      document.getElementById('victory-screen').style.display = 'flex';
+      const earnedGold = THEME.name && THEME.name.includes("Caverns") ? 350 : 250;
+      document.getElementById('earned-gold-value').innerText = earnedGold;
+      if (document.pointerLockElement) document.exitPointerLock();
+      lockPrompt.style.display = 'none';
+    }
+    function returnToDashboard() {
+      const coins = document.getElementById('earned-gold-value').innerText;
+      window.location.href = `dashboard.html?earnedGold=${coins}&victory=true`;
+    }
+    // Loop
+    function gameLoop() {
+      updateMovement(); render3DView(); renderSprites();
+      if (++mmTick % 3 === 0) drawMinimap();
+      checkProximity(); requestAnimationFrame(gameLoop);
+    }
+    drawMinimap(); requestAnimationFrame(gameLoop);
+  </script>
+</body>
+</html>
