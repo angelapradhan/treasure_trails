@@ -124,3 +124,76 @@ canvas{display:block;}
 <script>
 'use strict';
 
+// ═══════════════════════════════════════════════════════════════
+//  AUDIO
+// ═══════════════════════════════════════════════════════════════
+const AC = new (window.AudioContext||window.webkitAudioContext)();
+function ra(){if(AC.state==='suspended')AC.resume();}
+
+function playMystery(){
+  ra(); const t=AC.currentTime;
+  // slow low drone
+  function drone(f,vol,dur){
+    const o=AC.createOscillator(),g=AC.createGain(),filt=AC.createBiquadFilter();
+    filt.type='lowpass';filt.frequency.value=300;
+    o.connect(filt);filt.connect(g);g.connect(AC.destination);
+    o.type='sine';o.frequency.setValueAtTime(f,t);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+3);
+    g.gain.linearRampToValueAtTime(vol*.6,t+dur-2);g.gain.linearRampToValueAtTime(0,t+dur);
+    o.start(t);o.stop(t+dur);
+  }
+  drone(38,.18,14);drone(57,.09,12);drone(76,.05,10);
+
+  // eerie theremin-like tones
+  const melody=[{f:174,s:.8,d:3.5},{f:155,s:3.5,d:3},{f:130,s:6.5,d:4},{f:146,s:10,d:3.5},{f:116,s:13,d:2}];
+  melody.forEach(({f,s,d})=>{
+    const o=AC.createOscillator(),g=AC.createGain(),rev=AC.createDelay(.8);
+    const rfb=AC.createGain();rfb.gain.value=.35;
+    rev.delayTime.value=.45;
+    o.connect(g);g.connect(rev);rev.connect(rfb);rfb.connect(rev);
+    g.connect(AC.destination);rev.connect(AC.destination);
+    o.type='sine';o.frequency.setValueAtTime(f,t+s);
+    o.frequency.setValueAtTime(f*.98,t+s+d*.6);
+    g.gain.setValueAtTime(0,t+s);g.gain.linearRampToValueAtTime(.07,t+s+.6);
+    g.gain.linearRampToValueAtTime(0,t+s+d);
+    o.start(t+s);o.stop(t+s+d+1);
+  });
+
+  // wind sweep
+  const bLen=AC.sampleRate*3;const bb=AC.createBuffer(1,bLen,AC.sampleRate);
+  const bd=bb.getChannelData(0);for(let i=0;i<bLen;i++)bd[i]=(Math.random()*2-1);
+  const bs=AC.createBufferSource(),bg=AC.createGain(),bf=AC.createBiquadFilter();
+  bf.type='bandpass';bf.frequency.value=420;bf.Q.value=.6;
+  bs.buffer=bb;bs.connect(bf);bf.connect(bg);bg.connect(AC.destination);
+  bg.gain.setValueAtTime(0,t);bg.gain.linearRampToValueAtTime(.06,t+4);
+  bg.gain.linearRampToValueAtTime(.03,t+10);bg.gain.linearRampToValueAtTime(0,t+14);
+  bs.start(t);bs.stop(t+14);
+
+  // heartbeat pulses
+  for(let i=0;i<8;i++){
+    const ht=2+i*1.6;
+    [0,.22].forEach((off,j)=>{
+      const o=AC.createOscillator(),g=AC.createGain();
+      o.connect(g);g.connect(AC.destination);
+      o.type='sine';o.frequency.setValueAtTime(55,t+ht+off);
+      o.frequency.exponentialRampToValueAtTime(28,t+ht+off+.14);
+      g.gain.setValueAtTime(.35-j*.1,t+ht+off);
+      g.gain.exponentialRampToValueAtTime(.001,t+ht+off+.18);
+      o.start(t+ht+off);o.stop(t+ht+off+.2);
+    });
+  }
+
+  // distant bell toll
+  [1.5,7,13].forEach(st=>{
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.connect(g);g.connect(AC.destination);
+    o.type='sine';o.frequency.setValueAtTime(370,t+st);
+    g.gain.setValueAtTime(.12,t+st);g.gain.exponentialRampToValueAtTime(.001,t+st+2.5);
+    o.start(t+st);o.stop(t+st+3);
+    const o2=AC.createOscillator(),g2=AC.createGain();
+    o2.connect(g2);g2.connect(AC.destination);
+    o2.type='sine';o2.frequency.setValueAtTime(555,t+st+.02);
+    g2.gain.setValueAtTime(.06,t+st+.02);g2.gain.exponentialRampToValueAtTime(.001,t+st+2);
+    o2.start(t+st+.02);o2.stop(t+st+2.2);
+  });
+}
