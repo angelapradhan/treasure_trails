@@ -91,3 +91,36 @@ canvas{display:block;}
   <div style="color:#f0c040;font-family:Arial,sans-serif;font-size:22px;font-weight:bold;margin:6px 0;">+ <span id="wcoins">0</span> COINS</div>
 </div>
 
+<!-- PUZZLE (Muktinath Jigsaw Seal) -->
+<div id="puzzle">
+  <div class="puzzle-card">
+    <div class="puzzle-title">MUKTINATH JIGSAW SEAL</div>
+    <div class="puzzle-desc">Reconstruct the Muktinath Temple image (3x3 grid)<br>by clicking tiles to swap. Solve before time expires!</div>
+    <div class="jigsaw-container">
+      <div class="jigsaw-timer" id="jigsaw-timer-display">30s</div>
+      <canvas id="jigsaw-canvas" width="240" height="240"></canvas>
+    </div>
+    <div class="puzzle-msg" id="jigsaw-status"></div>
+  </div>
+</div>
+
+<!-- LUCKY WHEEL (stage 4 treasure seal) -->
+<div id="wheelPanel">
+  <div class="wheel-card">
+    <div class="wheel-title">LUCKY WHEEL</div>
+    <div class="wheel-desc">You found the ancient seal! Spin the wheel to claim your treasure — the multiplier decides your coin haul.</div>
+    <div class="wheel-wrap">
+      <div class="wheel-pointer">▼</div>
+      <svg id="wheelSvg" viewBox="0 0 300 300" class="wheel-svg"></svg>
+      <div class="wheel-hub">☠</div>
+    </div>
+    <button class="ov-btn" id="wheelSpinBtn" onclick="spinWheel()">SPIN</button>
+    <div class="wheel-msg" id="wheelMsg"></div>
+  </div>
+</div>
+
+
+<script src="js/progress-api.js"></script>
+<script>
+'use strict';
+
