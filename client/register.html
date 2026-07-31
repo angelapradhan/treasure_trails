@@ -76,4 +76,78 @@
     </div>
   </main>
 
-  
+  <!-- Background Audio Setup -->
+  <audio id="bgAudio" src="images/aaa.mp3" preload="auto" loop></audio>
+
+  <script>
+    const audio = document.getElementById("bgAudio");
+
+    // Save timestamp and state before user navigates away
+    window.addEventListener("beforeunload", () => {
+        localStorage.setItem("audioTime", audio.currentTime);
+        localStorage.setItem("audioPlaying", !audio.paused);
+    });
+
+    document.addEventListener("DOMContentLoaded", () => {
+        const savedTime = localStorage.getItem("audioTime");
+        const wasPlaying = localStorage.getItem("audioPlaying");
+
+        if (savedTime) {
+            audio.currentTime = parseFloat(savedTime);
+        }
+
+        const playAudio = () => {
+            audio.play()
+                .then(() => {
+                    // Remove listeners once it successfully starts playing
+                    document.removeEventListener("click", playAudio);
+                    document.removeEventListener("keydown", playAudio);
+                })
+                .catch(err => console.log("Autoplay blocked. Waiting for user interaction."));
+        };
+
+        if (wasPlaying === "true") {
+            audio.play().catch(() => {
+                document.addEventListener("click", playAudio);
+                document.addEventListener("keydown", playAudio);
+            });
+        } else {
+            document.addEventListener("click", playAudio);
+            document.addEventListener("keydown", playAudio);
+        }
+    });
+
+    // Form Submission Logic
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+        e.preventDefault(); // Prevents default form layout refresh flow
+
+        const fullname = document.getElementById('reg-name').value;
+        const email = document.getElementById('reg-email').value;
+        const password = document.getElementById('reg-password').value;
+
+        try {
+            const response = await fetch('http://localhost:5001/api/register', { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ fullname, email, password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                alert('Registration Successful!');
+                window.location.href = 'login.html'; 
+            } else {
+                alert(data.message || 'Registration structural failure.');
+            }
+        } catch (error) {
+            console.error('API System Error:', error);
+            alert('Unable to target server database stream. Ensure your local server engine is actively running.');
+        }
+    });
+  </script>
+</body>
+
+</html>
