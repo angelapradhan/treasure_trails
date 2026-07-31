@@ -186,6 +186,9 @@
     <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" id="audio-icon"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
   </div>
 
+  <!-- Background Music (same as dashboard.html) -->
+  <audio id="bgMusic" src="images/bbbb.mp3" loop></audio>
+
   <!-- Checkpoint 1: Jigsaw -->
   <div id="modal-checkpoint-1" class="modal-overlay">
     <div class="modal-container" style="width:400px;">
@@ -338,6 +341,39 @@
       isMuted = !isMuted;
       document.getElementById('audio-icon').style.fill = isMuted ? '#555' : 'var(--gold)';
     };
+
+    // --- Background Music Engine (identical logic to dashboard.html) ---
+    const bgMusic = document.getElementById("bgMusic");
+
+    window.addEventListener("beforeunload", () => {
+      localStorage.setItem("audioTime", bgMusic.currentTime);
+      localStorage.setItem("audioPlaying", !bgMusic.paused);
+    });
+
+    window.addEventListener("load", () => {
+      const savedTime = localStorage.getItem("audioTime");
+      const wasPlaying = localStorage.getItem("audioPlaying");
+
+      if (savedTime) {
+        bgMusic.currentTime = parseFloat(savedTime);
+      }
+
+      const startAudio = () => {
+        bgMusic.play().catch(err => console.log("Autoplay blocked:", err));
+        document.removeEventListener("click", startAudio);
+        document.removeEventListener("keydown", startAudio);
+      };
+
+      if (wasPlaying !== "false") {
+        bgMusic.play().catch(() => {
+          document.addEventListener("click", startAudio);
+          document.addEventListener("keydown", startAudio);
+        });
+      } else {
+        document.addEventListener("click", startAudio);
+        document.addEventListener("keydown", startAudio);
+      }
+    });
 
     const urlParams = new URLSearchParams(window.location.search);
     const selectedChar = urlParams.get('selectedChar') || localStorage.getItem('nt_active_char') || 'char_1';
