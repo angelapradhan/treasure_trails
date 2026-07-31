@@ -289,4 +289,57 @@
     <button class="return-btn" onclick="returnToDashboard()">Return to Core Hub</button>
   </div>
 
-  
+  <!-- Background Music (same as dashboard.html) -->
+  <audio id="bgMusic" src="images/bbbb.mp3" loop></audio>
+
+  <script src="js/progress-api.js"></script>
+  <script>
+    'use strict';
+
+    const skyImg = new Image();
+    skyImg.src = 'images/background.webp';
+
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let isMuted = false;
+    function playSound(type) {
+      if (isMuted) return;
+      try {
+        const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'tick') {
+          osc.type = 'sine'; osc.frequency.setValueAtTime(800, now);
+          gain.gain.setValueAtTime(0.08, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+          osc.start(now); osc.stop(now + 0.08);
+        } else if (type === 'interact') {
+          osc.type = 'triangle'; osc.frequency.setValueAtTime(400, now);
+          osc.frequency.exponentialRampToValueAtTime(800, now + 0.25);
+          gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'success') {
+          osc.type = 'sine';
+          [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => osc.frequency.setValueAtTime(f, now + i * 0.1));
+          gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+          osc.start(now); osc.stop(now + 0.55);
+        } else if (type === 'failure') {
+          osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now);
+          osc.frequency.linearRampToValueAtTime(100, now + 0.25);
+          gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+          osc.start(now); osc.stop(now + 0.3);
+        } else if (type === 'victory') {
+          [523.25, 587.33, 659.25, 698.46, 783.99, 880, 987.77, 1046.5].forEach((freq, i) => {
+            const tOsc = audioCtx.createOscillator(), tGain = audioCtx.createGain();
+            tOsc.connect(tGain); tGain.connect(audioCtx.destination);
+            tOsc.type = 'sine'; tOsc.frequency.setValueAtTime(freq, now + i * 0.12);
+            tGain.gain.setValueAtTime(0.1, now + i * 0.12); tGain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.12 + 0.3);
+            tOsc.start(now + i * 0.12); tOsc.stop(now + i * 0.12 + 0.3);
+          });
+        }
+      } catch (e) {}
+    }
+    document.getElementById('audio-toggle').onclick = () => {
+      isMuted = !isMuted;
+      document.getElementById('audio-icon').style.fill = isMuted ? '#555' : 'var(--gold)';
+    };
+
+    
