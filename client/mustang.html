@@ -231,4 +231,26 @@
     </div>
   </div>
 
+  <!-- Final Combination Lock -->
+  <div id="modal-combination" class="modal-overlay">
+    <div class="modal-container" style="width:520px;">
+      <div class="modal-header">
+        <h2 class="modal-title">Ancient Seal Combination</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-combination')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="text-align:center; margin-bottom:15px;">Place the 3 relic fragments in slots in altitude order (Plains &rarr; Valley &rarr; Caves) to crack the seal.</p>
+        <div class="combination-slots">
+          <div class="combo-slot" id="slot-0" onclick="removeFragment(0)"></div>
+          <div class="combo-slot" id="slot-1" onclick="removeFragment(1)"></div>
+          <div class="combo-slot" id="slot-2" onclick="removeFragment(2)"></div>
+        </div>
+        <div style="text-align:center; font-size:0.75rem; color:#888; margin-bottom:8px;">Relic Pool — click to place:</div>
+        <div class="fragments-pool" id="fragments-pool-container"></div>
+        <div class="error-flash" id="combo-error" style="margin-top:15px;"></div>
+        <button class="modal-action-btn" onclick="checkCombinationSubmit()" style="margin-top:10px;">Activate Seal</button>
+      </div>
+    </div>
+  </div>
+
   
