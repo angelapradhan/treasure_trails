@@ -850,4 +850,114 @@
       }
     }
 
+    function renderSprites3D() {
+      const W=canvas3D.width, H=canvas3D.height;
+      const horizon=Math.round(H/2+horizonBob);
+      const { camX, camY } = getCamPos();
+      const list = [];
+
+      CHECKPOINTS.forEach(cp => {
+        if (!cp.solved || cp.final) {
+          if (Math.hypot(cp.x-player.x, cp.y-player.y) < 250) {
+            list.push({ type: cp.final?'final':'checkpoint', x:cp.x, y:cp.y, scale:1.0, label:cp.label, hex:cp.hex, rgb:cp.rgb });
+          }
+        }
+      });
+      sprites.forEach(s => { if (!s.hidden) list.push(s); });
+      if (isThirdPerson) list.push({ type:'player', x:player.x, y:player.y, scale:0.8 });
+
+      list.map(s => ({ s, dist: Math.hypot(s.x-camX, s.y-camY) }))
+        .sort((a,b) => b.dist-a.dist)
+        .forEach(({ s, dist }) => {
+          if (dist < 15) return;
+          let sa = Math.atan2(s.y-camY, s.x-camX) - player.angle;
+          while (sa > Math.PI) sa -= 2*Math.PI;
+          while (sa < -Math.PI) sa += 2*Math.PI;
+          if (Math.abs(sa) > player.fov*0.72) return;
+          const cd = dist*Math.cos(sa);
+          const sx = (W/2)+(W/2)*Math.tan(sa)/Math.tan(player.fov/2);
+          if (sx<-200||sx>W+200) return;
+          const sH = Math.min(H*2.5,(TILE_SIZE*H*1.35*s.scale)/(cd+0.001));
+          const aspect = s.aspect || (s.isVehicle ? 1.7 : 1.0);
+          const sW = sH * aspect;
+          const brt = Math.max(0.04, Math.min(1, 1-cd/1200));
+          const bounceY = s.isVehicle ? Math.sin(s.bounce || 0) * 1.6 : 0;
+
+          if (s.type==='checkpoint'||s.type==='final') {
+            const [r,g,b]=s.rgb;
+            const beamW=Math.max(3,sH*0.15), yTop=horizon-sH/2;
+            const bg=ctx.createRadialGradient(sx,horizon,0,sx,horizon,sH*0.55);
+            bg.addColorStop(0,`rgba(${r},${g},${b},${(brt*0.25).toFixed(3)})`);
+            bg.addColorStop(1,`rgba(${r},${g},${b},0)`);
+            ctx.fillStyle=bg; ctx.fillRect(sx-sH*0.55,horizon-sH*0.55,sH*1.1,sH*1.1);
+            const beam=ctx.createLinearGradient(sx-beamW,0,sx+beamW,0);
+            beam.addColorStop(0,`rgba(${r},${g},${b},0)`);
+            beam.addColorStop(0.3,`rgba(${r},${g},${b},${brt.toFixed(3)})`);
+            beam.addColorStop(0.7,`rgba(${r},${g},${b},${brt.toFixed(3)})`);
+            beam.addColorStop(1,`rgba(${r},${g},${b},0)`);
+            ctx.fillStyle=beam; ctx.fillRect(sx-beamW,yTop,beamW*2,sH);
+            if (cd<320&&brt>0.18) {
+              ctx.save(); ctx.globalAlpha=Math.min(1,brt*1.4);
+              ctx.fillStyle='#fff'; ctx.font=`bold ${Math.max(9,Math.floor(13*brt))}px Outfit,sans-serif`;
+              ctx.textAlign='center'; ctx.fillText(s.label,sx,yTop-8); ctx.restore();
+            }
+            return;
+          }
+
+          let assetName = s.type==='player' ? `${selectedChar}_back` : s.type.startsWith('vehicle') ? (s.asset || 'vehicle_h') : s.type.startsWith('key') ? 'key' : s.type;
+          const img = offscreen[assetName]; if (!img) return;
+          const flip = s.type === 'vehicle1' && s.dx < 0;
+          const startX=Math.round(sx-sW/2), endX=Math.round(sx+sW/2), targetY=horizon-sH/2+bounceY;
+          for (let x=startX; x<endX; x++) {
+            if (x<0||x>=W) continue;
+            if (zBuffer[x]!==undefined&&cd>zBuffer[x]+2) continue;
+            let srcCol = Math.floor(((x-startX)/sW)*img.width);
+            if (flip) srcCol = img.width - 1 - srcCol;
+            ctx.drawImage(img, srcCol, 0, 1, img.height, x, targetY, 1, sH);
+          }
+        });
+    }
+
+    function renderMinimapHUD() {
+      const mc=document.getElementById('minimap-canvas'), mm=mc.getContext('2d');
+      if (mc.width!==140){mc.width=140;mc.height=140;}
+      const scale=70/(7*TILE_SIZE);
+      mm.clearRect(0,0,140,140); mm.fillStyle='#030306'; mm.fillRect(0,0,140,140);
+      mm.save(); mm.translate(70,70);
+      for (let gy=0;gy<MAP_SIZE;gy++) for (let gx=0;gx<MAP_SIZE;gx++) {
+        const rx=(gx*TILE_SIZE-player.x)*scale, ry=(gy*TILE_SIZE-player.y)*scale, ts=TILE_SIZE*scale+0.5;
+        const cell=MAP_GRID[gy][gx];
+        mm.fillStyle=cell>0?(cell===3?'#7a5a2e':'#5a5a58'):'#09090e';
+        mm.fillRect(rx,ry,ts,ts);
+      }
+      CHECKPOINTS.forEach(cp => {
+        if (cp.id===1||CHECKPOINTS[cp.id-2].solved) {
+          mm.fillStyle=cp.solved?'#4dfa62':cp.hex;
+          mm.beginPath(); mm.arc((cp.x-player.x)*scale,(cp.y-player.y)*scale,4,0,Math.PI*2); mm.fill();
+        }
+      });
+      mm.fillStyle='#fff'; mm.beginPath(); mm.arc(0,0,3.5,0,Math.PI*2); mm.fill();
+      mm.strokeStyle='#fff'; mm.lineWidth=2; mm.beginPath();
+      mm.moveTo(0,0); mm.lineTo(Math.cos(player.angle)*12,Math.sin(player.angle)*12); mm.stroke();
+      mm.restore();
+    }
+
+    function checkProximityInteracts() {
+      let closestCp=null, minD=Infinity;
+      CHECKPOINTS.forEach(cp => { const d=Math.hypot(cp.x-player.x,cp.y-player.y); if(d<INTERACT_R&&d<minD){closestCp=cp;minD=d;} });
+      nearCP=closestCp;
+      const promptEl=document.getElementById('interact-prompt'), promptText=document.getElementById('interact-text');
+      if (closestCp) {
+        const isUnlocked = closestCp.id===1 || CHECKPOINTS[closestCp.id-2].solved;
+        if (isUnlocked) {
+          promptText.innerText=closestCp.final?(closestCp.solved?'Sacred Chest (Complete)':'Inspect Sacred Chest Seal'):(closestCp.solved?`${closestCp.label} (Cleared)`:`Inspect ${closestCp.label}`);
+          promptEl.style.display=(closestCp.solved&&!closestCp.final)?'none':'block';
+        } else promptEl.style.display='none';
+      } else if (keysActive) {
+        let nearKey=null;
+        sprites.forEach(s=>{if(!s.type.startsWith('key')||s.hidden||s.collected)return; if(Math.hypot(s.x-player.x,s.y-player.y)<45)nearKey=s;});
+        promptText.innerText='Collect Golden Key'; promptEl.style.display=nearKey?'block':'none';
+      } else promptEl.style.display='none';
+    }
+
     
