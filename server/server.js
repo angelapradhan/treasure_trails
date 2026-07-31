@@ -13,9 +13,9 @@ app.use(express.json());
 const PORT = 5001;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-only-change-this-secret';
 
-// ─────────────────────────────────────────────────────────────
+
 // DB connection check
-// ─────────────────────────────────────────────────────────────
+
 pool.query("SELECT NOW()")
     .then(() => {
         console.log("✅ Database connected successfully");
@@ -25,9 +25,9 @@ pool.query("SELECT NOW()")
         console.error(err.message);
     });
 
-// ─────────────────────────────────────────────────────────────
-// Auth middleware — verifies the JWT and attaches req.userId
-// ─────────────────────────────────────────────────────────────
+
+// Auth middleware 
+
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1]; // "Bearer <token>"
@@ -45,20 +45,15 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// ─────────────────────────────────────────────────────────────
+
 // Test route
-// ─────────────────────────────────────────────────────────────
+
 app.get('/api/test', (req, res) => {
     res.json({ message: "Server is running!" });
 });
 
-// ─────────────────────────────────────────────────────────────
 // Register Route
-// New users automatically get level=0 and coins=500 because those
-// columns have DB-level defaults (see add_progress_columns.sql).
-// This INSERT deliberately does NOT mention level/coins so the
-// defaults apply.
-// ─────────────────────────────────────────────────────────────
+
 app.post('/api/register', async (req, res) => {
     const { fullname, email, password } = req.body;
     try {
@@ -86,12 +81,8 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// ─────────────────────────────────────────────────────────────
+
 // Login Route
-// Now issues a REAL signed JWT containing the user's id, instead
-// of the hardcoded "fake-jwt-token" string. This is what makes
-// req.userId available on every protected route below.
-// ─────────────────────────────────────────────────────────────
 app.post('/api/login', async (req, res) => {
     const { email, password } = req.body;
     try {
@@ -99,9 +90,7 @@ app.post('/api/login', async (req, res) => {
 
         if (result.rows.length > 0) {
             const user = result.rows[0];
-            // NOTE: passwords are being compared in plain text here, same as
-            // your original code. This works but is not secure for production —
-            // see the note at the end of this file about adding bcrypt.
+
             if (user.password === password) {
                 const token = jwt.sign(
                     { id: user.id, email: user.email },
@@ -121,11 +110,7 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// ─────────────────────────────────────────────────────────────
 // GET /api/progress
-// Returns the logged-in user's current level and coins.
-// Called by dashboard.html on every load.
-// ─────────────────────────────────────────────────────────────
 app.get('/api/progress', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(
@@ -142,12 +127,7 @@ app.get('/api/progress', authenticateToken, async (req, res) => {
     }
 });
 
-// ─────────────────────────────────────────────────────────────
 // POST /api/progress/coins
-// body: { amount: number }  (positive to earn, negative to spend)
-// Adds `amount` to the user's coin balance and returns the new total.
-// Coins never go below 0.
-// ─────────────────────────────────────────────────────────────
 app.post('/api/progress/coins', authenticateToken, async (req, res) => {
     const { amount } = req.body;
 
@@ -173,12 +153,7 @@ app.post('/api/progress/coins', authenticateToken, async (req, res) => {
     }
 });
 
-// ─────────────────────────────────────────────────────────────
 // POST /api/progress/complete-level
-// No body needed. Increments the user's level by exactly 1.
-// Call this ONLY from the game's true completion event
-// (finishGameVictory) — never on pause, refresh, or quit.
-// ─────────────────────────────────────────────────────────────
 app.post('/api/progress/complete-level', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query(
@@ -202,10 +177,3 @@ app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
 
-// ─────────────────────────────────────────────────────────────
-// SECURITY NOTE (not implemented above, since it wasn't asked for,
-// but flagging it because it's a real gap in the current code):
-// Passwords are stored and compared in plain text. If you want,
-// I can update /api/register to hash with bcrypt on signup and
-// /api/login to use bcrypt.compare() instead of ===. Just say the word.
-// ─────────────────────────────────────────────────────────────
