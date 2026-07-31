@@ -617,4 +617,61 @@
     }
     buildVehicleAsset('vehicle_h', '#c54233', '#7c1f1f');
 
+    // Front/rear-on car view — used for vehicles driving along a vertical (north-south)
+    // corridor. A side-profile billboard always reads as "moving sideways" no matter
+    // which way it's actually travelling, since it never rotates to face the camera.
+    // This narrow, symmetric silhouette (hood/windshield centered, headlights mirrored
+    // left-right) reads correctly as driving straight toward or away from the player.
+    function buildFrontVehicleAsset(name, bodyColor, roofColor) {
+      buildOffscreenAsset(name, 160, 200, (c) => {
+        c.fillStyle = 'rgba(0,0,0,0.35)';
+        c.beginPath(); c.ellipse(80, 186, 66, 12, 0, 0, Math.PI*2); c.fill();
+        // body (wider at bumper, tapers up toward roof)
+        const bodyGrad = c.createLinearGradient(0, 90, 0, 175);
+        bodyGrad.addColorStop(0, bodyColor); bodyGrad.addColorStop(1, '#000');
+        c.fillStyle = bodyColor;
+        c.beginPath();
+        c.moveTo(18, 175); c.quadraticCurveTo(10, 140, 26, 110);
+        c.quadraticCurveTo(34, 80, 50, 62); c.lineTo(110, 62);
+        c.quadraticCurveTo(126, 80, 134, 110); c.quadraticCurveTo(150, 140, 142, 175);
+        c.quadraticCurveTo(142, 184, 130, 184); c.lineTo(30, 184);
+        c.quadraticCurveTo(18, 184, 18, 175); c.closePath(); c.fill();
+        c.fillStyle = bodyGrad; c.fillRect(18, 130, 124, 46);
+        // roof + windshield
+        c.fillStyle = roofColor;
+        c.beginPath();
+        c.moveTo(50, 62); c.quadraticCurveTo(56, 30, 80, 26); c.quadraticCurveTo(104, 30, 110, 62);
+        c.closePath(); c.fill();
+        c.fillStyle = '#7fd4f0';
+        c.beginPath();
+        c.moveTo(58, 60); c.quadraticCurveTo(62, 38, 80, 34); c.quadraticCurveTo(98, 38, 102, 60);
+        c.closePath(); c.fill();
+        // side mirrors
+        c.fillStyle = roofColor; c.fillRect(14, 76, 10, 8); c.fillRect(136, 76, 10, 8);
+        // hood seam
+        c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(80, 62); c.lineTo(80, 160); c.stroke();
+        // bumper + grille
+        c.fillStyle = '#d8d8d8'; c.fillRect(20, 160, 120, 16);
+        c.fillStyle = 'rgba(0,0,0,0.3)';
+        for (let gx=40; gx<120; gx+=10) c.fillRect(gx, 164, 4, 8);
+        // headlights, mirrored left/right
+        c.fillStyle = '#fff6c8';
+        c.beginPath(); c.ellipse(34, 148, 9, 7, 0, 0, Math.PI*2); c.fill();
+        c.beginPath(); c.ellipse(126, 148, 9, 7, 0, 0, Math.PI*2); c.fill();
+        // wheels peeking out at the base corners
+        [26, 134].forEach(wx => {
+          c.fillStyle = '#111'; c.beginPath(); c.arc(wx, 182, 14, 0, Math.PI*2); c.fill();
+          c.fillStyle = '#555'; c.beginPath(); c.arc(wx, 182, 7, 0, Math.PI*2); c.fill();
+        });
+      });
+    }
+    buildFrontVehicleAsset('vehicle_v', '#3a7fb0', '#1c4763');
+    ['char_1','char_2','char_3','char_4','char_5','char_6','char_7'].forEach((id, i) => {
+      const colors = ['#8B0000','#eaeaea','#c3b091','#2e461a','#eae6df','#1a1a1a','#c41e3a'];
+      buildOffscreenAsset(`${id}_back`, 128, 128, (c) => {
+        c.fillStyle = colors[i]; c.fillRect(34,40,60,88);
+      });
+    });
+
     
