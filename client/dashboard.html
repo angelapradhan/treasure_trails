@@ -415,8 +415,12 @@
     </div>
   </div>
 
+  <!-- Audio Element (points to images/bbbb.mp3) -->
+  <audio id="bgMusic" src="images/bbbb.mp3" loop></audio>
+
+  <script src="js/progress-api.js"></script>
   <script>
-   let coins = 500;
+   let coins = 0;
    let level = 0; 
 
     const charactersData = [
@@ -498,6 +502,7 @@
         coins -= cost;
         document.getElementById('coin-count').innerText = coins.toLocaleString();
         charactersData.find(c => c.id === id).unlocked = true;
+        syncCoins(-cost);
         selectCharacter(id); 
       } else {
         alert("Inadequate coins! Hunt more maps to collect gold.");
@@ -510,10 +515,46 @@
       selectCharacter(id);
     }
 
-    window.onload = function() {
+    // --- Audio Handler Engine ---
+    const bgMusic = document.getElementById("bgMusic");
+
+    window.addEventListener("beforeunload", () => {
+      localStorage.setItem("audioTime", bgMusic.currentTime);
+      localStorage.setItem("audioPlaying", !bgMusic.paused);
+    });
+
+    window.onload = async function() {
+  const progress = await fetchProgress();
+  if (progress) {
+    coins = progress.coins;
+    level = progress.level;
+  }
   document.getElementById("coin-count").innerText = coins;
   document.getElementById("level-count").innerText = level;
   selectCharacter("char_1");
+
+  const savedTime = localStorage.getItem("audioTime");
+  const wasPlaying = localStorage.getItem("audioPlaying");
+
+  if (savedTime) {
+    bgMusic.currentTime = parseFloat(savedTime);
+  }
+
+  const startAudio = () => {
+    bgMusic.play().catch(err => console.log("Autoplay blocked:", err));
+    document.removeEventListener("click", startAudio);
+    document.removeEventListener("keydown", startAudio);
+  };
+
+  if (wasPlaying !== "false") {
+    bgMusic.play().catch(() => {
+      document.addEventListener("click", startAudio);
+      document.addEventListener("keydown", startAudio);
+    });
+  } else {
+    document.addEventListener("click", startAudio);
+    document.addEventListener("keydown", startAudio);
+  }
 };
   </script>
 </body>
