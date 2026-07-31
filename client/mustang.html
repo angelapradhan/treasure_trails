@@ -724,4 +724,130 @@
       const { camX, camY } = getCamPos();
       const horizon = Math.round(H/2 + horizonBob);
 
-      
+      // Static background image (no panning)
+      if (skyImg.complete && skyImg.naturalWidth > 0) {
+        ctx.drawImage(skyImg, 0, 0, skyImg.width, skyImg.height, 0, 0, W, horizon);
+      } else {
+        const cg = ctx.createLinearGradient(0, 0, 0, horizon);
+        cg.addColorStop(0, THEME.sky); cg.addColorStop(1, THEME.ceil);
+        ctx.fillStyle = cg; ctx.fillRect(0, 0, W, horizon);
+      }
+
+      const fg = ctx.createLinearGradient(0, horizon, 0, H);
+      fg.addColorStop(0, THEME.floor); fg.addColorStop(1, THEME.floorD);
+      ctx.fillStyle = fg; ctx.fillRect(0, horizon, W, H - horizon);
+
+      zBuffer = new Array(W);
+      const startAngle = player.angle - player.fov/2;
+      for (let col=0; col<W; col++) {
+        const rayAngle = startAngle + (col/W)*player.fov;
+        const cosA = Math.cos(rayAngle), sinA = Math.sin(rayAngle);
+        let dist=0, wallType=0, hit=false;
+        // Track every stretch of road tiles this ray passes through, using the exact
+        // same per-step samples used to find the wall -- this guarantees the road never
+        // drifts out of sync with the geometry the player is actually walking on, and
+        // it is automatically clipped by whatever wall the ray eventually hits.
+        const roadRuns = [];
+        let inRoad = false, roadEnter = 0;
+        while (!hit && dist<1400) {
+          dist += 2;
+          const wx = camX+cosA*dist, wy = camY+sinA*dist;
+          const cx = Math.floor(wx/TILE_SIZE);
+          const cy = Math.floor(wy/TILE_SIZE);
+          if (cx<0||cx>=MAP_SIZE||cy<0||cy>=MAP_SIZE) { hit=true; dist=1400; }
+          else if (MAP_GRID[cy][cx]>0) { hit=true; wallType=MAP_GRID[cy][cx]; }
+          else {
+            const onRoad = isRoadAt(wx, wy);
+            if (onRoad && !inRoad) { inRoad = true; roadEnter = dist; }
+            else if (!onRoad && inRoad) { inRoad = false; roadRuns.push({ enter: roadEnter, exit: dist }); }
+          }
+        }
+        if (inRoad) roadRuns.push({ enter: roadEnter, exit: dist });
+
+        const cosDiff = Math.cos(rayAngle - player.angle);
+        if (roadRuns.length) {
+          roadRuns.forEach(run => {
+            const d0 = Math.max(run.enter, 1), d1 = Math.min(run.exit, dist);
+            if (d1 <= d0) return;
+            const c0 = d0*cosDiff, c1 = d1*cosDiff;
+            if (c0 <= 0 || c1 <= 0) return;
+            const p0 = (TILE_SIZE*H)/(2*c0);
+            const p1 = (TILE_SIZE*H)/(2*c1);
+            const y0 = Math.min(H, horizon + p0);
+            const y1 = Math.max(horizon, horizon + p1);
+            if (y0 <= y1) return;
+            const midD = (d0+d1)/2;
+            const rb = Math.max(0.06, Math.min(1, 1 - midD/900));
+            const mx = camX+cosA*midD, my = camY+sinA*midD;
+            const checker = (Math.floor(mx/20)+Math.floor(my/20)) % 2 === 0;
+            const laneMid = (Math.floor((mx+my)/22) % 9 === 0) || (Math.floor((mx+my)/22) % 9 === 1);
+            if (laneMid) {
+              ctx.fillStyle = `rgb(${Math.floor(5*rb)},${Math.floor(5*rb)},${Math.floor(5*rb)})`;
+            } else {
+              const base = checker ? 22 : 16;
+              ctx.fillStyle = `rgb(${Math.floor(base*rb)},${Math.floor(base*rb)},${Math.floor(base*rb)})`;
+            }
+            ctx.fillRect(col, y1, 1, y0-y1);
+          });
+        }
+
+        const corrected = dist * Math.cos(rayAngle - player.angle);
+        zBuffer[col] = corrected;
+        const wH = Math.min(H*2, (TILE_SIZE*H)/(corrected+0.001));
+        const factor = 1 - Math.abs(col-W/2)/(W/2);
+        const torch = Math.max(0,(THEME.torch-corrected)/THEME.torch)*(0.28+factor*0.72);
+        const brt = Math.min(1, 0.12+torch*0.88);
+
+        let hitX = camX+cosA*dist, hitY = camY+sinA*dist;
+        let offset = Math.abs(hitX - Math.round(hitX/TILE_SIZE)*TILE_SIZE) < Math.abs(hitY - Math.round(hitY/TILE_SIZE)*TILE_SIZE) ? hitY%TILE_SIZE : hitX%TILE_SIZE;
+        const yTop = horizon - wH/2;
+
+        if (wallType !== 3) {
+          // Gray concrete tile-grid wall (the version used just before the blue walls).
+          const cell = 16;
+          const cellPos = ((offset % cell) + cell) % cell;
+          const bandIndex = Math.floor(offset / cell);
+          const rows = 4;
+          const rowH = wH / rows;
+          for (let r = 0; r < rows; r++) {
+            const ry = yTop + r * rowH;
+            const checker = (bandIndex + r) % 2 === 0;
+            const shade = checker ? 74 : 60;
+            ctx.fillStyle = `rgb(${Math.floor(shade*brt)},${Math.floor(shade*brt)},${Math.floor((shade+3)*brt)})`;
+            ctx.fillRect(col, ry, 1, rowH + 1);
+          }
+          const distToVLine = Math.min(cellPos, cell - cellPos);
+          if (distToVLine < 1.4) {
+            ctx.fillStyle = `rgb(${Math.floor(6*brt)},${Math.floor(6*brt)},${Math.floor(6*brt)})`;
+            ctx.fillRect(col, yTop, 1, wH);
+          }
+          for (let r = 1; r < rows; r++) {
+            ctx.fillStyle = `rgb(${Math.floor(6*brt)},${Math.floor(6*brt)},${Math.floor(6*brt)})`;
+            ctx.fillRect(col, yTop + r * rowH, 1, Math.max(1, wH * 0.012));
+          }
+          const borderH = Math.max(1, wH * 0.03);
+          ctx.fillStyle = `rgb(${Math.floor(3*brt)},${Math.floor(3*brt)},${Math.floor(3*brt)})`;
+          ctx.fillRect(col, yTop, 1, borderH);
+          ctx.fillRect(col, yTop + wH - borderH, 1, borderH);
+        } else if (wallType === 3) {
+          // Wooden fence/gate divider — vertical plank texture with a scalloped/arched
+          // top edge and a horizontal cross-brace, matching the wooden gate in the reference.
+          const plankCycle = 18;
+          let woF = Math.floor(offset) % plankCycle;
+          const archOffset = Math.sin((woF / plankCycle) * Math.PI) * wH * 0.07;
+          const fenceTop = yTop - archOffset;
+          const fenceH = wH + archOffset;
+          ctx.fillStyle = `rgb(${Math.floor(122*brt)},${Math.floor(86*brt)},${Math.floor(46*brt)})`;
+          ctx.fillRect(col, fenceTop, 1, fenceH);
+          if (woF < 2 || woF > plankCycle - 3) {
+            ctx.fillStyle = `rgb(${Math.floor(72*brt)},${Math.floor(48*brt)},${Math.floor(24*brt)})`;
+            ctx.fillRect(col, fenceTop, 1, fenceH);
+          }
+          const braceY = fenceTop + fenceH * 0.52, braceH = fenceH * 0.09;
+          ctx.fillStyle = `rgb(${Math.floor(92*brt)},${Math.floor(62*brt)},${Math.floor(30*brt)})`;
+          ctx.fillRect(col, braceY, 1, braceH);
+        }
+      }
+    }
+
+    
