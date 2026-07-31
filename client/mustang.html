@@ -121,3 +121,84 @@
     }
   </style>
 </head>
+<body>
+  <div id="danger-flash" class="danger-overlay"></div>
+
+  <div id="viewport-container">
+    <div class="click-to-play" id="lock-prompt">
+      <div class="play-icon">🌙</div>
+      <div class="play-title">Enter Mustang Pass</div>
+      <div class="play-subtitle">Click to lock your cursor and explore this walkable 3D map environment</div>
+      <button class="play-btn" onclick="requestLock()">ACTIVATE 3D VIEW &rarr;</button>
+    </div>
+    <div class="crosshair" id="screen-crosshair"></div>
+    <canvas id="render-canvas"></canvas>
+  </div>
+
+  <div class="top-hud">
+    <div style="display:flex; flex-direction:column; gap:15px;">
+      <div class="hud-card">
+        <div>
+          <div class="hud-title">Expedition Map</div>
+          <div id="hud-map-name" class="hud-value">Mustang Pass</div>
+        </div>
+        <div style="border-left:1px solid #333; padding-left:15px;">
+          <div class="hud-title">Active Character</div>
+          <div id="hud-char-name" class="hud-value">...</div>
+        </div>
+        <div style="border-left:1px solid #333; padding-left:15px;">
+          <div class="hud-title">Lives</div>
+          <div id="lives-counter" class="hud-value" style="color:#ff4d4d; letter-spacing: 2px;">❤️ ❤️ ❤️</div>
+        </div>
+        <div style="border-left:1px solid #333; padding-left:15px;">
+          <div class="hud-title">Inventory</div>
+          <div id="inventory-counter" class="hud-value" style="color:#e0e0e0;">Relic Pieces: <span id="puzzle-pieces-count" style="color:var(--gold);">0/3</span></div>
+        </div>
+      </div>
+
+      <div class="hud-card quest-log">
+        <div class="hud-title" style="font-weight:800; border-bottom:1px solid #222; width:100%; padding-bottom:4px;">Mission Objectives</div>
+        <div id="quest-cp1" class="quest-item unlocked">Solve Checkpoint 1 (Muktinath Jigsaw Puzzle)</div>
+        <div id="quest-cp2" class="quest-item">Solve Checkpoint 2 (Mustang Story Quiz)</div>
+        <div id="quest-cp3" class="quest-item">Find 3 Hidden Keys scattered in the environment</div>
+        <div id="quest-final" class="quest-item">Unlock the Ancient Combination lock at the Main Sacred Chest</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="minimap-container hud-element">
+    <canvas id="minimap-canvas"></canvas>
+  </div>
+
+  <div id="interact-prompt" class="interact-prompt">
+    <span class="key-badge">E</span> <span id="interact-text">Inspect Chest</span>
+  </div>
+
+  <div class="controls-guide hud-element">
+    <div>Move: <span style="color:#fff; font-weight:bold;">WASD / Arrows</span></div>
+    <div>Look: <span style="color:#fff; font-weight:bold;">Mouse (Locked)</span></div>
+    <div>Camera: <span style="color:#fff; font-weight:bold;">V (Toggle 3rd Person)</span></div>
+    <div>Interact: <span style="color:#fff; font-weight:bold;">E</span></div>
+    <div>Exit Look: <span style="color:#fff; font-weight:bold;">ESC</span></div>
+  </div>
+
+  <div id="audio-toggle" class="audio-toggle hud-element">
+    <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24" id="audio-icon"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+  </div>
+
+  <!-- Checkpoint 1: Jigsaw -->
+  <div id="modal-checkpoint-1" class="modal-overlay">
+    <div class="modal-container" style="width:400px;">
+      <div class="modal-header"><h2 class="modal-title">Muktinath Jigsaw Seal</h2></div>
+      <div class="modal-body">
+        <p style="margin-bottom:10px; text-align:center;">Reconstruct the Muktinath Temple image (3x3 grid) by clicking tiles to swap. Solve before time expires!</p>
+        <div class="jigsaw-container">
+          <div class="jigsaw-timer" id="jigsaw-timer-display">30s</div>
+          <canvas id="jigsaw-canvas" width="240" height="240"></canvas>
+        </div>
+        <div class="error-flash" id="jigsaw-status"></div>
+      </div>
+    </div>
+  </div>
+
+  
