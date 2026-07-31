@@ -674,4 +674,54 @@
       });
     });
 
-    
+    function updateMovementPhysics() {
+      if (modalOpen) return;
+      let dx = 0, dy = 0;
+      if (keys['w']||keys['arrowup'])    { dx += Math.cos(player.angle); dy += Math.sin(player.angle); }
+      if (keys['s']||keys['arrowdown'])  { dx -= Math.cos(player.angle); dy -= Math.sin(player.angle); }
+      if (keys['a']||keys['arrowleft'])  { dx += Math.sin(player.angle); dy -= Math.cos(player.angle); }
+      if (keys['d']||keys['arrowright']) { dx -= Math.cos(player.angle); dy += Math.cos(player.angle); }
+      const moving = dx !== 0 || dy !== 0;
+      if (moving) {
+        walkTime += 0.08; horizonBob = Math.sin(walkTime) * 3.0;
+        cameraBobTime += 0.16; cameraBob = Math.sin(cameraBobTime) * 1.8;
+      } else { horizonBob *= 0.85; cameraBob *= 0.85; }
+      if (!moving) return;
+      const nx = player.x + dx * player.speed, ny = player.y + dy * player.speed;
+      const gx = Math.floor(nx/TILE_SIZE), gy = Math.floor(ny/TILE_SIZE);
+      const cgx = Math.floor(player.x/TILE_SIZE), cgy = Math.floor(player.y/TILE_SIZE);
+      if (!isSolid(gx,gy)) { player.x = nx; player.y = ny; }
+      else { if (!isSolid(gx,cgy)) player.x = nx; if (!isSolid(cgx,gy)) player.y = ny; }
+    }
+
+    function updateVehiclesPhysics() {
+      if (modalOpen) return;
+      sprites.forEach(s => {
+        if (!s.isVehicle) return;
+        if (s.dx) { s.x += s.dx; if (s.x > s.maxX || s.x < s.minX) s.dx = -s.dx; }
+        if (s.dy) { s.y += s.dy; if (s.y > s.maxY || s.y < s.minY) s.dy = -s.dy; }
+        s.bounce = (s.bounce || 0) + 0.22;
+        if (Math.hypot(player.x - s.x, player.y - s.y) < 30) triggerDamage();
+      });
+    }
+
+    function getCamPos() {
+      let camX = player.x, camY = player.y;
+      if (isThirdPerson) {
+        let ba = player.angle + Math.PI;
+        for (let d=0; d<70; d+=2) {
+          let tx = player.x + Math.cos(ba)*d, ty = player.y + Math.sin(ba)*d;
+          if (isSolid(Math.floor(tx/TILE_SIZE), Math.floor(ty/TILE_SIZE))) break;
+          camX = tx; camY = ty;
+        }
+      }
+      return { camX, camY };
+    }
+
+    function renderRaycast3D() {
+      const W = canvas3D.width = canvas3D.clientWidth;
+      const H = canvas3D.height = canvas3D.clientHeight;
+      const { camX, camY } = getCamPos();
+      const horizon = Math.round(H/2 + horizonBob);
+
+      
