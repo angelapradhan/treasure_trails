@@ -1,14 +1,4 @@
-// js/progress-api.js
-// Shared helper for dashboard.html and valley.html. Include this with:
-//   <script src="js/progress-api.js"></script>
-// BEFORE your existing inline <script> block on each page.
-//
-// COIN SYNC IS RESILIENT: every earned/spent coin amount is queued in
-// localStorage BEFORE the network request fires. It's only removed from
-// the queue once the server confirms it saved. If the request fails
-// (server down, network blip, tab closed mid-request), the amount stays
-// queued and gets retried automatically the next time ANY page that
-// includes this file loads. Coins can be delayed, but they can't be lost.
+
 
 const API_BASE = "http://localhost:5001/api";
 const PENDING_KEY = "tt_pending_coins";
