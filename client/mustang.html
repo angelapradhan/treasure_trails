@@ -440,6 +440,10 @@
     ];
     function isSolid(gx, gy) { return gx < 0 || gx >= MAP_SIZE || gy < 0 || gy >= MAP_SIZE || MAP_GRID[gy][gx] > 0; }
 
+    // Roads are defined as world-space rectangles (in tile units) and are detected
+    // directly along each wall-cast ray, so they render with the exact same
+    // step-by-step sampling as the walls -- this keeps them perfectly locked to the
+    // floor with no separate "quad" that can desync, warp, or vanish near the camera.
     const ROAD_RECTS = [
       { x0: 1*TILE_SIZE,  x1: 15*TILE_SIZE, y0: 9*TILE_SIZE,  y1: 10*TILE_SIZE },
       { x0: 7*TILE_SIZE,  x1: 8*TILE_SIZE,  y0: 10*TILE_SIZE, y1: 21*TILE_SIZE }
@@ -507,5 +511,110 @@
         lockPrompt.style.display = 'flex';
       }
     });
+
+    const keys = {};
+    window.addEventListener('mousemove', e => {
+      if (document.pointerLockElement === viewport) player.angle += e.movementX * player.ms;
+    });
+    window.addEventListener('keydown', e => {
+      keys[e.key.toLowerCase()] = true;
+      if (e.key.toLowerCase() === 'e') {
+        if (nearCP && !modalOpen) handleInteract();
+        else if (keysActive) handleKeyPickup();
+      }
+      if (e.key.toLowerCase() === 'v') {
+        isThirdPerson = !isThirdPerson;
+        crosshair.style.opacity = isThirdPerson ? '0' : '1';
+        playSound('tick');
+      }
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay').forEach(m => { if (m.id !== 'modal-gameover') m.style.display = 'none'; });
+        modalOpen = false;
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+    const offscreen = {};
+    function buildOffscreenAsset(name, w, h, drawFn) {
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      drawFn(c.getContext('2d'), w, h); offscreen[name] = c;
+    }
+
+    buildOffscreenAsset('palm', 128, 128, (c) => {
+      c.fillStyle = '#8b5a2b'; c.fillRect(60, 40, 8, 88);
+      c.strokeStyle = '#5c3815'; c.lineWidth = 2;
+      for (let y=50; y<120; y+=12) { c.beginPath(); c.moveTo(58,y); c.lineTo(70,y); c.stroke(); }
+      c.fillStyle = '#2d6a1b';
+      function frond(px, py, a) { c.save(); c.translate(px,py); c.rotate(a); c.beginPath(); c.ellipse(25,0,25,6,0,0,Math.PI*2); c.fill(); c.restore(); }
+      for (let a=0; a<Math.PI*2; a+=Math.PI/4) frond(64, 40, a);
+    });
+    buildOffscreenAsset('chorten', 128, 128, (c) => {
+      c.fillStyle = '#eae6df'; c.beginPath(); c.moveTo(34,110); c.lineTo(94,110); c.lineTo(84,50); c.lineTo(44,50); c.closePath(); c.fill();
+      c.fillStyle = '#9e4233'; c.fillRect(43,85,42,6);
+      c.fillStyle = '#c5a059'; c.fillRect(60,10,8,40); c.beginPath(); c.moveTo(54,25); c.lineTo(74,25); c.lineTo(64,10); c.closePath(); c.fill();
+    });
+    buildOffscreenAsset('bench', 128, 128, (c) => {
+      c.fillStyle = '#1c1815'; c.fillRect(30,80,8,40); c.fillRect(90,80,8,40);
+      c.fillStyle = '#a86f4a'; c.fillRect(20,65,88,15); c.fillRect(20,45,88,15);
+    });
+    buildOffscreenAsset('garbage', 128, 128, (c) => {
+      c.fillStyle = '#4a4846'; c.beginPath(); c.arc(50,95,20,0,Math.PI*2); c.fill();
+      c.fillStyle = '#343332'; c.beginPath(); c.arc(75,98,16,0,Math.PI*2); c.fill();
+      c.fillStyle = '#9c9187'; c.fillRect(30,105,12,8);
+      c.fillStyle = '#c55e5e'; c.beginPath(); c.arc(64,110,5,0,Math.PI*2); c.fill();
+    });
+    buildOffscreenAsset('key', 64, 64, (c) => {
+      c.strokeStyle = '#c5a059'; c.lineWidth = 4;
+      c.beginPath(); c.arc(32,20,10,0,Math.PI*2); c.stroke();
+      c.fillStyle = '#c5a059'; c.fillRect(29,30,6,25); c.fillRect(35,45,10,6); c.fillRect(35,51,8,4);
+    });
+    function buildVehicleAsset(name, bodyColor, roofColor) {
+      buildOffscreenAsset(name, 256, 128, (c) => {
+        // ground shadow baked in
+        c.fillStyle = 'rgba(0,0,0,0.35)';
+        c.beginPath(); c.ellipse(128, 116, 118, 10, 0, 0, Math.PI*2); c.fill();
+        // lower body
+        const bodyGrad = c.createLinearGradient(0, 50, 0, 100);
+        bodyGrad.addColorStop(0, bodyColor); bodyGrad.addColorStop(1, '#000');
+        c.fillStyle = bodyColor;
+        c.beginPath();
+        c.moveTo(14, 100); c.lineTo(14, 70); c.quadraticCurveTo(14, 58, 28, 56);
+        c.lineTo(228, 56); c.quadraticCurveTo(242, 58, 242, 70); c.lineTo(242, 100);
+        c.quadraticCurveTo(242, 108, 232, 108); c.lineTo(24, 108); c.quadraticCurveTo(14, 108, 14, 100);
+        c.closePath(); c.fill();
+        c.fillStyle = bodyGrad; c.fillRect(14, 82, 228, 26);
+        // cabin / roof + windows
+        c.fillStyle = roofColor;
+        c.beginPath();
+        c.moveTo(66, 56); c.quadraticCurveTo(74, 22, 110, 20); c.lineTo(158, 20);
+        c.quadraticCurveTo(190, 22, 198, 56); c.closePath(); c.fill();
+        c.fillStyle = '#7fd4f0';
+        c.beginPath();
+        c.moveTo(78, 52); c.quadraticCurveTo(84, 30, 112, 28); c.lineTo(126, 28); c.lineTo(126, 52); c.closePath(); c.fill();
+        c.beginPath();
+        c.moveTo(132, 28); c.lineTo(154, 28); c.quadraticCurveTo(180, 30, 186, 52); c.lineTo(132, 52); c.closePath(); c.fill();
+        c.fillStyle = 'rgba(20,20,25,0.55)'; c.fillRect(128, 26, 4, 26);
+        // door seam + handle
+        c.strokeStyle = 'rgba(0,0,0,0.25)'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(128, 56); c.lineTo(128, 106); c.stroke();
+        c.fillStyle = '#ddd'; c.fillRect(96, 78, 16, 4); c.fillRect(150, 78, 16, 4);
+        // bumpers
+        c.fillStyle = '#d8d8d8'; c.fillRect(8, 92, 16, 14); c.fillRect(232, 92, 16, 14);
+        // headlights (front, right side) & taillights (rear, left side)
+        c.fillStyle = '#fff6c8'; c.beginPath(); c.ellipse(236, 90, 7, 9, 0, 0, Math.PI*2); c.fill();
+        c.fillStyle = '#ff5544'; c.beginPath(); c.ellipse(20, 90, 6, 9, 0, 0, Math.PI*2); c.fill();
+        // wheels + hubcaps
+        [58, 198].forEach(wx => {
+          c.fillStyle = '#111'; c.beginPath(); c.arc(wx, 108, 20, 0, Math.PI*2); c.fill();
+          c.fillStyle = '#555'; c.beginPath(); c.arc(wx, 108, 11, 0, Math.PI*2); c.fill();
+          c.fillStyle = '#ccc';
+          for (let a=0; a<Math.PI*2; a+=Math.PI/3) {
+            c.beginPath(); c.moveTo(wx,108);
+            c.lineTo(wx+Math.cos(a)*9, 108+Math.sin(a)*9); c.lineWidth=2.5; c.strokeStyle='#ccc'; c.stroke();
+          }
+        });
+      });
+    }
+    buildVehicleAsset('vehicle_h', '#c54233', '#7c1f1f');
 
     
