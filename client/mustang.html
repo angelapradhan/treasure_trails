@@ -960,4 +960,117 @@
       } else promptEl.style.display='none';
     }
 
+    function handleInteract() {
+      if (!nearCP||(nearCP.solved&&!nearCP.final)) return;
+      playSound('interact');
+      if (nearCP.id===2&&!CHECKPOINTS[0].solved) { showNotif('Solve Mission 1 first!'); playSound('failure'); return; }
+      if (nearCP.id===3&&!CHECKPOINTS[1].solved) { showNotif('Solve Mission 2 first!'); playSound('failure'); return; }
+      if (nearCP.final) {
+        if (!CHECKPOINTS[2].solved) { showNotif('Solve Mission 3 first!'); playSound('failure'); return; }
+        if (inventory.length<3) { document.getElementById('warning-pieces-collected').innerText=`${inventory.length}/3`; openOverlay('modal-warning'); }
+        else openCombinationModal();
+        return;
+      }
+      if (nearCP.id===1) { initJigsawPuzzle(); openOverlay('modal-checkpoint-1'); }
+      else if (nearCP.id===2) { initMustangQuiz(); openOverlay('modal-checkpoint-2'); }
+      else if (nearCP.id===3) {
+        keysActive=true;
+        sprites.forEach(s=>{if(s.type.startsWith('key'))s.hidden=false;});
+        openOverlay('modal-checkpoint-3');
+      }
+    }
+
+    function openOverlay(id) {
+      document.getElementById(id).style.display='flex'; modalOpen=true;
+      if (document.pointerLockElement) document.exitPointerLock();
+      keys.w=keys.a=keys.s=keys.d=keys.arrowup=keys.arrowdown=keys.arrowleft=keys.arrowright=false;
+    }
+    function closeOverlay(id) {
+      document.getElementById(id).style.display='none'; playSound('tick');
+      modalOpen=(document.querySelectorAll('.modal-overlay[style*="flex"]').length>0);
+    }
+
+    // Jigsaw Puzzle
+    let jigsawTimerVal=30, jigsawTimerInterval=null, jigsawTiles=[], jigsawSelectedIdx=null;
+    const pieceSize=80, jigsawCanvas=document.getElementById('jigsaw-canvas'), jigsawCtx=jigsawCanvas.getContext('2d');
+    const offscreenImg=document.createElement('canvas'); offscreenImg.width=240; offscreenImg.height=240;
+    const oCtx=offscreenImg.getContext('2d');
+    // Base sky gradient
+    const mustangSkyGrad = oCtx.createLinearGradient(0,0,0,240);
+    mustangSkyGrad.addColorStop(0,'#1b1030'); mustangSkyGrad.addColorStop(0.5,'#3a1f1f'); mustangSkyGrad.addColorStop(1,'#1c0f05');
+    oCtx.fillStyle=mustangSkyGrad; oCtx.fillRect(0,0,240,240);
+
+    // Moon — makes the top-left tile (col0,row0) visually unique
+    oCtx.fillStyle='#f4e9c9'; oCtx.beginPath(); oCtx.arc(40,35,16,0,Math.PI*2); oCtx.fill();
+
+    // Stars — makes the top-right tile (col2,row0) visually unique
+    oCtx.fillStyle='#ffffff';
+    [[195,20],[210,40],[220,15],[200,55]].forEach(([sx,sy])=>{oCtx.beginPath();oCtx.arc(sx,sy,1.6,0,Math.PI*2);oCtx.fill();});
+
+    // Asymmetric mountain skyline — breaks any left/right symmetry across the top+middle rows
+    oCtx.fillStyle='#241522';
+    oCtx.beginPath();
+    oCtx.moveTo(0,90);
+    oCtx.lineTo(30,55); oCtx.lineTo(55,85); oCtx.lineTo(90,40); oCtx.lineTo(125,80);
+    oCtx.lineTo(150,50); oCtx.lineTo(180,88); oCtx.lineTo(210,60); oCtx.lineTo(240,90);
+    oCtx.lineTo(240,110); oCtx.lineTo(0,110); oCtx.closePath(); oCtx.fill();
+
+    // Temple structure (unchanged)
+    oCtx.fillStyle='#ff7a3d'; oCtx.fillRect(20,180,200,60);
+    oCtx.fillStyle='#8b2b2b'; oCtx.fillRect(60,100,120,80);
+    oCtx.fillStyle='#c5a059'; oCtx.fillRect(110,120,20,60);
+    oCtx.fillStyle='#c5a059'; oCtx.beginPath(); oCtx.moveTo(40,100); oCtx.lineTo(200,100); oCtx.lineTo(120,60); oCtx.closePath(); oCtx.fill();
+    oCtx.fillStyle='#ffd700'; oCtx.fillRect(115,20,10,40); oCtx.beginPath(); oCtx.moveTo(105,30); oCtx.lineTo(135,30); oCtx.lineTo(120,10); oCtx.closePath(); oCtx.fill();
+    oCtx.fillStyle='#b08b46'; for(let i=0;i<8;i++) oCtx.fillRect(70+i*13,160,6,8);
+
+    // Prayer stone cairn — makes the bottom-left tile (col0,row2) visually unique
+    oCtx.fillStyle='#6b4a2a';
+    oCtx.beginPath(); oCtx.ellipse(35,215,14,10,0,0,Math.PI*2); oCtx.fill();
+    oCtx.beginPath(); oCtx.ellipse(30,205,9,7,0,0,Math.PI*2); oCtx.fill();
+
+    // Small prayer-flag pole — makes the bottom-right tile (col2,row2) visually unique
+    oCtx.fillStyle='#8a5a2a'; oCtx.fillRect(205,190,4,45);
+    oCtx.fillStyle='#d2143a'; oCtx.beginPath(); oCtx.moveTo(209,192); oCtx.lineTo(225,198); oCtx.lineTo(209,204); oCtx.closePath(); oCtx.fill();
+
+    function initJigsawPuzzle() {
+      jigsawTimerVal=30; document.getElementById('jigsaw-timer-display').innerText='30s';
+      document.getElementById('jigsaw-status').innerText=''; jigsawSelectedIdx=null;
+      jigsawTiles=[]; for(let i=0;i<9;i++) jigsawTiles.push(i);
+      for(let i=8;i>0;i--){const j=Math.floor(Math.random()*(i+1));[jigsawTiles[i],jigsawTiles[j]]=[jigsawTiles[j],jigsawTiles[i]];}
+      renderJigsawCanvas();
+      if(jigsawTimerInterval) clearInterval(jigsawTimerInterval);
+      jigsawTimerInterval=setInterval(()=>{
+        jigsawTimerVal--; document.getElementById('jigsaw-timer-display').innerText=`${jigsawTimerVal}s`;
+        if(jigsawTimerVal<=0){clearInterval(jigsawTimerInterval);handleJigsawFailure();}
+      },1000);
+    }
+    function renderJigsawCanvas() {
+      jigsawCtx.clearRect(0,0,240,240);
+      for(let i=0;i<9;i++){
+        const pi=jigsawTiles[i], row=Math.floor(i/3), col=i%3;
+        jigsawCtx.drawImage(offscreenImg,(pi%3)*pieceSize,Math.floor(pi/3)*pieceSize,pieceSize,pieceSize,col*pieceSize,row*pieceSize,pieceSize,pieceSize);
+        jigsawCtx.strokeStyle='rgba(197,160,89,0.4)'; jigsawCtx.strokeRect(col*pieceSize,row*pieceSize,pieceSize,pieceSize);
+        if(jigsawSelectedIdx===i){jigsawCtx.fillStyle='rgba(255,255,255,0.28)';jigsawCtx.fillRect(col*pieceSize,row*pieceSize,pieceSize,pieceSize);}
+      }
+    }
+    jigsawCanvas.onclick=function(e){
+      const r=jigsawCanvas.getBoundingClientRect();
+      const clicked=Math.floor((e.clientY-r.top)/pieceSize)*3+Math.floor((e.clientX-r.left)/pieceSize);
+      if(jigsawSelectedIdx===null){jigsawSelectedIdx=clicked;playSound('tick');}
+      else{[jigsawTiles[jigsawSelectedIdx],jigsawTiles[clicked]]=[jigsawTiles[clicked],jigsawTiles[jigsawSelectedIdx]];jigsawSelectedIdx=null;playSound('tick');renderJigsawCanvas();checkJigsawSolved();}
+    };
+    function checkJigsawSolved(){
+      if(jigsawTiles.every((v,i)=>v===i)){
+        clearInterval(jigsawTimerInterval);
+        document.getElementById('jigsaw-status').style.color='#4dfa62';
+        document.getElementById('jigsaw-status').innerText='✓ Seal Unlocked!'; playSound('success');
+        setTimeout(()=>{closeOverlay('modal-checkpoint-1');solveCP(1);giveFragment('frag_a');unlockQuest(2);},1500);
+      }
+    }
+    function handleJigsawFailure(){
+      triggerDamage();
+      if(lives>0){document.getElementById('jigsaw-status').style.color='#ff4d4d';document.getElementById('jigsaw-status').innerText='Failed! Lost 1 life. Retry...';setTimeout(initJigsawPuzzle,1800);}
+      else closeOverlay('modal-checkpoint-1');
+    }
+
     
