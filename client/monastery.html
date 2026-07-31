@@ -45,6 +45,7 @@ canvas{display:block;}
 .wheel-pointer{position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:26px;color:#f0c840;z-index:3;text-shadow:0 2px 4px rgba(0,0,0,.7);}
 .wheel-hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;background:radial-gradient(circle,#2a2a2a,#0c0c0c);border:2px solid #c8a030;display:flex;align-items:center;justify-content:center;font-size:20px;z-index:2;box-shadow:0 0 14px rgba(240,200,64,.5);}
 .wheel-msg{margin-top:6px;font-family:Arial,sans-serif;font-size:15px;letter-spacing:1px;color:#f0c840;min-height:20px;font-weight:bold;}
+.sync-msg{margin-top:10px;font-family:Arial,sans-serif;font-size:11px;letter-spacing:1px;color:#8fb0c4;min-height:16px;}
 </style>
 </head>
 <body>
@@ -82,6 +83,7 @@ canvas{display:block;}
   <div class="ov-sub">You spun the Lucky Wheel and claimed the ancient treasure</div>
   <div style="color:#f0c040;font-family:Arial,sans-serif;font-size:24px;font-weight:bold;margin:10px 0;">🪙 <span id="finalcoins">0</span> TOTAL COINS</div>
   <div class="ov-sub" style="margin-top:6px;">Returning to the map...</div>
+  <div class="sync-msg" id="syncmsg">Saving progress...</div>
 </div>
 
 <!-- STAGE CLEAR (auto-advances, no button) -->
@@ -119,7 +121,7 @@ canvas{display:block;}
   </div>
 </div>
 
-
+<script src="js/progress-api.js"></script>
 <script>
 'use strict';
 
@@ -388,9 +390,25 @@ setTimeout(()=>{try{playMystery();}catch(e){}},200);
 // ═══════════════════════════════════════════════════════════════
 const gc=document.getElementById('gc');
 const cx=gc.getContext('2d');
+
+// Pause icon lives in the top-left HUD box (drawn in drawHUD at 8,8,36,36).
+// Tapping/clicking that box toggles `paused`, which the loop() below checks.
+function handlePauseIconTap(clientX,clientY){
+  if(!gameOn)return;
+  const rect=gc.getBoundingClientRect();
+  const scaleX=gc.width/rect.width, scaleY=gc.height/rect.height;
+  const mx=(clientX-rect.left)*scaleX;
+  const my=(clientY-rect.top)*scaleY;
+  if(mx>=8&&mx<=44&&my>=8&&my<=44){
+    paused=!paused;
+    ra();
+  }
+}
+gc.addEventListener('click', e=>handlePauseIconTap(e.clientX,e.clientY));
 let W,H,gameOn=false,lastT=0;
 let inp={};
 let joy={on:false,sx:0,sy:0,dx:0,dy:0};
+let paused=false;
 
 // Game state
 let G={};
@@ -729,11 +747,54 @@ function spinWheel(){
   },4050);
 }
 
-function finishGameVictory(){
+// ═══════════════════════════════════════════════════════════════
+//  VICTORY — the ONLY place coins/level get saved for this map.
+//  Syncs to the same progress-api.js / dashboard.html database used
+//  by lumbini.html. G.coins is the FULL running total earned this
+//  playthrough (crab drops + wheel spin), so it's passed to syncCoins
+//  as a single delta, same pattern as Lumbini's fixed GOLD_REWARD.
+//  Coins are queued locally first (see progress-api.js) so they
+//  survive a slow/failed network request; level only increments here,
+//  never from a partial run, a quit, or a refresh.
+// ═══════════════════════════════════════════════════════════════
+let victoryTriggered=false;
+async function finishGameVictory(){
+  if(victoryTriggered)return;
+  victoryTriggered=true;
   gameOn=false;
   playWin();
   document.getElementById('finalcoins').textContent=G.coins;
   document.getElementById('gamewin').style.display='flex';
+  const syncEl=document.getElementById('syncmsg');
+  if(syncEl) syncEl.textContent='Saving progress...';
+
+  // Grab the level as it stands right now so we can show "before -> after".
+  const before = await fetchProgress();
+  const beforeLevel = before ? before.level : null;
+
+  syncCoins(G.coins);              // queued + saved to the database
+  const newLevel = await completeLevel(); // +1 level, saved to the database
+
+  if(syncEl){
+    if (newLevel !== null && beforeLevel !== null) {
+      syncEl.textContent = `Level Up! LVL ${beforeLevel} → ${newLevel}`;
+    } else if (newLevel !== null) {
+      syncEl.textContent = `Level Up! Now LVL ${newLevel}`;
+    } else {
+      syncEl.textContent = `Progress will sync once you're back online`;
+    }
+  }
+
+  // Local-only flag used for the star marker on map.html — not part of
+  // the level/coins database sync, kept as-is from the original design.
+  try{
+    let completed = JSON.parse(localStorage.getItem('nt_completed_maps') || '[]');
+    if (!completed.includes('cloud_trails')) {
+      completed.push('cloud_trails');
+      localStorage.setItem('nt_completed_maps', JSON.stringify(completed));
+    }
+  }catch(e){}
+
   setTimeout(()=>{ window.location.href='map.html'; },3000);
 }
 
@@ -751,6 +812,7 @@ function startGame(){
   document.getElementById('intro').style.display='none';
   gc.style.display='block';
   W=gc.width=window.innerWidth; H=gc.height=window.innerHeight;
+  paused=false;
   initG(); initStage(); gameOn=true; lastT=performance.now();
   setupTouch();
   requestAnimationFrame(loop);
@@ -758,6 +820,12 @@ function startGame(){
 
 function loop(ts){
   if(!gameOn)return;
+  if(paused){
+    draw(); drawHUD(); drawPauseOverlay();
+    lastT=ts; // keep dt from jumping once resumed
+    requestAnimationFrame(loop);
+    return;
+  }
   const dt=Math.min((ts-lastT)/1000,.05);lastT=ts;
   update(dt); draw(); drawHUD();
   requestAnimationFrame(loop);
@@ -959,6 +1027,8 @@ function nextStage(){
 
 function restartGame(){
   document.getElementById('gameover').style.display='none';
+  victoryTriggered=false;
+  paused=false;
   initG(); initStage(); gameOn=true; lastT=performance.now();
   requestAnimationFrame(loop);
 }
@@ -1353,6 +1423,19 @@ function drawParticles(){
   cx.globalAlpha=1;
 }
 
+function drawPauseOverlay(){
+  cx.fillStyle='rgba(4,10,18,.55)';
+  cx.fillRect(0,0,W,H);
+  cx.fillStyle='#eaf6ff';
+  cx.font='bold 40px Georgia, serif';
+  cx.textAlign='center';
+  cx.fillText('PAUSED',W/2,H/2);
+  cx.fillStyle='rgba(234,246,255,.75)';
+  cx.font='13px Arial';
+  cx.fillText('Tap the pause icon (top-left) to resume',W/2,H/2+32);
+  cx.textAlign='left';
+}
+
 function drawVignette(){
   const vg=cx.createRadialGradient(W/2,H/2,H*.2,W/2,H/2,H*.75);
   vg.addColorStop(0,'transparent');vg.addColorStop(1,'rgba(4,10,18,.5)');
@@ -1364,7 +1447,12 @@ function drawHUD(){
   cx.fillStyle='rgba(4,10,18,.85)';cx.fillRect(0,0,W,52);
 
   cx.fillStyle='rgba(255,255,255,.1)';roundRect(cx,8,8,36,36,6,'rgba(255,255,255,.08)');
-  cx.fillStyle='#fff';cx.fillRect(17,16,5,20);cx.fillRect(26,16,5,20);
+  cx.fillStyle='#fff';
+  if(paused){
+    cx.beginPath();cx.moveTo(19,15);cx.lineTo(19,37);cx.lineTo(34,26);cx.closePath();cx.fill();
+  }else{
+    cx.fillRect(17,16,5,20);cx.fillRect(26,16,5,20);
+  }
 
   cx.fillStyle='#fff';cx.font='bold 16px Arial';cx.textAlign='center';
   cx.fillText(`LEVEL  ${G.level}    STAGE  ${G.stage} / ${G.maxStage}`,W/2,30);
