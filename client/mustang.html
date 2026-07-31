@@ -440,4 +440,72 @@
     ];
     function isSolid(gx, gy) { return gx < 0 || gx >= MAP_SIZE || gy < 0 || gy >= MAP_SIZE || MAP_GRID[gy][gx] > 0; }
 
+    const ROAD_RECTS = [
+      { x0: 1*TILE_SIZE,  x1: 15*TILE_SIZE, y0: 9*TILE_SIZE,  y1: 10*TILE_SIZE },
+      { x0: 7*TILE_SIZE,  x1: 8*TILE_SIZE,  y0: 10*TILE_SIZE, y1: 21*TILE_SIZE }
+    ];
+    function isRoadAt(wx, wy) {
+      for (let i = 0; i < ROAD_RECTS.length; i++) {
+        const r = ROAD_RECTS[i];
+        if (wx >= r.x0 && wx < r.x1 && wy >= r.y0 && wy < r.y1) return true;
+      }
+      return false;
+    }
+
+    const player = { x: 650, y: 800, angle: Math.PI * 1.5, fov: Math.PI / 3, speed: 2.8 * activeChar.speed, ms: 0.0022 };
+    let isThirdPerson = false, cameraBob = 0, cameraBobTime = 0;
+    let zBuffer = [], horizonBob = 0, walkTime = 0, mmTick = 0;
+
+    const CHECKPOINTS = [
+      { id: 1, x: 4*TILE_SIZE+32,  y: 2*TILE_SIZE+32,  label: 'Muktinath Jigsaw', hex: '#4dfaff', rgb: [77,250,255],  solved: false, qid: 'quest-cp1' },
+      { id: 2, x: 13*TILE_SIZE+32, y: 9*TILE_SIZE+32,  label: 'Mustang Quiz',     hex: '#ffe64d', rgb: [255,230,77],  solved: false, qid: 'quest-cp2' },
+      { id: 3, x: 6*TILE_SIZE+32,  y: 15*TILE_SIZE+32, label: '3 Hidden Keys',    hex: '#ff4dfa', rgb: [255,77,250],  solved: false, qid: 'quest-cp3' },
+      { id: 4, x: 21*TILE_SIZE+32, y: 12*TILE_SIZE+32, label: 'Final Treasure',   hex: '#ffb700', rgb: [255,183,0],   solved: false, final: true, qid: 'quest-final' }
+    ];
+
+    const FRAGS = [
+      { id: 'frag_a', icon: '📜', name: 'Relic Peak Caves Relief',   sub: 'Mustang Caves'  },
+      { id: 'frag_b', icon: '🗿', name: 'Relic Kali Gandaki Plain',   sub: 'Mustang Plains' },
+      { id: 'frag_c', icon: '🏔', name: 'Relic Lo Manthang Village',  sub: 'Mustang Valley' }
+    ];
+
+    const sprites = [
+      { type: 'palm',    x: 1*TILE_SIZE+32,  y: 2*TILE_SIZE+32,  scale: 1.2 },
+      { type: 'palm',    x: 4*TILE_SIZE+32,  y: 2*TILE_SIZE+32,  scale: 1.2 },
+      { type: 'palm',    x: 7*TILE_SIZE+32,  y: 2*TILE_SIZE+32,  scale: 1.2 },
+      { type: 'palm',    x: 8*TILE_SIZE+32,  y: 7*TILE_SIZE+32,  scale: 1.2 },
+      { type: 'palm',    x: 12*TILE_SIZE+32, y: 12*TILE_SIZE+32, scale: 1.2 },
+      { type: 'palm',    x: 19*TILE_SIZE+32, y: 21*TILE_SIZE+32, scale: 1.2 },
+      { type: 'chorten', x: 8*TILE_SIZE+32,  y: 3*TILE_SIZE+32,  scale: 1.1 },
+      { type: 'chorten', x: 15*TILE_SIZE+32, y: 18*TILE_SIZE+32, scale: 1.1 },
+      { type: 'bench',   x: 8*TILE_SIZE+32,  y: 22*TILE_SIZE+32, scale: 0.8 },
+      { type: 'bench',   x: 14*TILE_SIZE+32, y: 3*TILE_SIZE+32,  scale: 0.8 },
+      { type: 'garbage', x: 15*TILE_SIZE+32, y: 12*TILE_SIZE+32, scale: 0.6 },
+      { type: 'garbage', x: 5*TILE_SIZE+32,  y: 18*TILE_SIZE+32, scale: 0.6 },
+      { type: 'key1', x: 7*TILE_SIZE+32,  y: 2*TILE_SIZE+42,  scale: 0.5, hidden: true, collected: false },
+      { type: 'key2', x: 15*TILE_SIZE+32, y: 12*TILE_SIZE+42, scale: 0.5, hidden: true, collected: false },
+      { type: 'key3', x: 8*TILE_SIZE+32,  y: 22*TILE_SIZE+42, scale: 0.5, hidden: true, collected: false },
+      { type: 'vehicle1', asset: 'vehicle_h', aspect: 1.7,  x: 2*TILE_SIZE,      y: 9*TILE_SIZE+32,  scale: 1.05, isVehicle: true, dx: 2.8,  minX: 1*TILE_SIZE,  maxX: 15*TILE_SIZE, bounce: 0 },
+      { type: 'vehicle2', asset: 'vehicle_v', aspect: 0.85, x: 7*TILE_SIZE+32,   y: 11*TILE_SIZE,    scale: 1.05, isVehicle: true, dy: 3.5,  minY: 10*TILE_SIZE, maxY: 21*TILE_SIZE, bounce: 0 }
+    ];
+
+    const INTERACT_R = 80;
+    let inventory = [], comboSlots = [null, null, null], nearCP = null, modalOpen = false;
+    let keysActive = false, keysCollected = 0;
+
+    const canvas3D = document.getElementById('render-canvas');
+    const viewport = document.getElementById('viewport-container');
+    const ctx = canvas3D.getContext('2d');
+    const lockPrompt = document.getElementById('lock-prompt');
+    const crosshair = document.getElementById('screen-crosshair');
+
+    function requestLock() { audioCtx.resume(); viewport.requestPointerLock(); }
+    document.addEventListener('pointerlockchange', () => {
+      if (document.pointerLockElement === viewport) {
+        lockPrompt.style.display = 'none';
+      } else if (!document.getElementById('victory-screen').style.display.includes('flex') && lives > 0) {
+        lockPrompt.style.display = 'flex';
+      }
+    });
+
     
