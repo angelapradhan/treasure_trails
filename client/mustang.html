@@ -342,4 +342,37 @@
       document.getElementById('audio-icon').style.fill = isMuted ? '#555' : 'var(--gold)';
     };
 
+    // --- Background Music Handler Engine (identical logic to dashboard.html) ---
+    const bgMusic = document.getElementById("bgMusic");
+
+    window.addEventListener("beforeunload", () => {
+      localStorage.setItem("audioTime", bgMusic.currentTime);
+      localStorage.setItem("audioPlaying", !bgMusic.paused);
+    });
+
+    window.addEventListener("load", function() {
+      const savedTime = localStorage.getItem("audioTime");
+      const wasPlaying = localStorage.getItem("audioPlaying");
+
+      if (savedTime) {
+        bgMusic.currentTime = parseFloat(savedTime);
+      }
+
+      const startAudio = () => {
+        bgMusic.play().catch(err => console.log("Autoplay blocked:", err));
+        document.removeEventListener("click", startAudio);
+        document.removeEventListener("keydown", startAudio);
+      };
+
+      if (wasPlaying !== "false") {
+        bgMusic.play().catch(() => {
+          document.addEventListener("click", startAudio);
+          document.addEventListener("keydown", startAudio);
+        });
+      } else {
+        document.addEventListener("click", startAudio);
+        document.addEventListener("keydown", startAudio);
+      }
+    });
+
     
