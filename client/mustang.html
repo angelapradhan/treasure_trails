@@ -375,4 +375,69 @@
       }
     });
 
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedChar = urlParams.get('selectedChar') || localStorage.getItem('nt_active_char') || 'char_1';
+    const CHARS = {
+      char_1: { name: "Sherpa Scout",      speed: 0.85, color: "#8B0000" },
+      char_2: { name: "Tharu Pathbreaker", speed: 0.98, color: "#E6E6FA" },
+      char_3: { name: "Rana Archaeologist",speed: 0.85, color: "#C3B091" },
+      char_4: { name: "Gorkha Vanguard",   speed: 0.80, color: "#2E461A" },
+      char_5: { name: "Yeti Mystic",       speed: 1.02, color: "#E6F2FF" },
+      char_6: { name: "Newa Artisan",      speed: 0.85, color: "#1A1A1A" },
+      char_7: { name: "Kumari Seer",       speed: 0.72, color: "#C41E3A" }
+    };
+    const activeChar = CHARS[selectedChar] || CHARS.char_1;
+    document.getElementById('hud-char-name').innerText = activeChar.name;
+
+    const THEME = { sky: '#06070c', ceil: '#0b0f1a', floor: '#1a2614', floorD: '#0d150b', torch: 600 };
+
+    let lives = 3;
+    function updateLivesUI() {
+      document.getElementById('lives-counter').innerHTML = "❤️ ".repeat(lives).trim();
+      if (lives <= 0) openGameOverModal();
+    }
+    function triggerDamage() {
+      lives--;
+      updateLivesUI();
+      playSound('failure');
+      const flash = document.getElementById('danger-flash');
+      flash.style.opacity = '1';
+      setTimeout(() => { flash.style.opacity = '0'; }, 300);
+      if (lives > 0) { player.x = 650; player.y = 800; player.angle = Math.PI * 1.5; }
+    }
+    function openGameOverModal() {
+      if (document.pointerLockElement) document.exitPointerLock();
+      openOverlay('modal-gameover');
+    }
+    window.restartExpedition = () => window.location.reload();
+
+    const MAP_SIZE = 24, TILE_SIZE = 64;
+    const MAP_GRID = [
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,0,0,0,0,2,2,0,0,0,0,0,0,3,3,3,3,3,3,3,1],
+      [1,0,3,3,0,3,3,0,2,2,0,0,0,0,0,0,3,3,3,3,3,3,3,1],
+      [1,0,3,3,0,3,3,0,0,0,0,0,0,0,0,0,0,0,3,3,3,3,3,1],
+      [1,0,0,0,0,0,0,0,2,2,2,0,4,4,4,0,0,0,0,3,3,3,0,1],
+      [1,0,2,2,2,2,2,0,2,0,0,0,0,0,2,0,0,0,0,0,0,0,0,1],
+      [1,0,2,0,0,0,2,0,2,0,0,0,0,0,2,0,2,2,2,2,2,2,0,1],
+      [1,0,2,0,0,0,2,0,2,2,2,0,2,2,2,0,2,0,0,0,0,2,0,1],
+      [1,0,2,2,0,2,2,0,0,0,0,0,0,0,0,0,2,0,3,3,0,2,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,3,3,0,2,0,1],
+      [1,0,0,0,0,0,0,0,2,2,2,2,2,2,0,0,2,0,0,0,0,2,0,1],
+      [1,0,2,2,2,2,0,0,2,2,2,2,2,2,0,0,2,2,2,0,2,2,0,1],
+      [1,0,2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,2,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,2,2,0,2,2,2,2,0,0,0,2,2,2,2,2,2,2,2,2,2,0,1],
+      [1,0,0,0,0,0,0,0,2,0,0,0,2,3,3,3,3,3,3,3,3,2,0,1],
+      [1,3,3,3,3,3,0,0,2,0,0,0,2,3,3,3,3,3,3,3,3,2,0,1],
+      [1,3,3,3,3,3,3,0,2,2,0,2,2,3,3,3,3,3,3,3,3,2,0,1],
+      [1,3,3,3,3,3,3,0,0,0,0,0,0,0,3,3,3,3,3,3,3,2,0,1],
+      [1,2,2,2,2,2,2,0,0,0,0,0,0,0,2,2,2,2,2,2,2,2,0,1],
+      [1,0,0,0,0,0,0,0,3,3,0,3,3,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,3,3,0,3,3,0,0,0,0,0,0,0,0,0,0,1],
+      [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+    ];
+    function isSolid(gx, gy) { return gx < 0 || gx >= MAP_SIZE || gy < 0 || gy >= MAP_SIZE || MAP_GRID[gy][gx] > 0; }
+
     
