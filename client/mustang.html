@@ -253,4 +253,19 @@
     </div>
   </div>
 
+  <!-- Warning: not enough fragments -->
+  <div id="modal-warning" class="modal-overlay">
+    <div class="modal-container" style="width:380px;">
+      <div class="modal-header">
+        <h2 class="modal-title" style="color:#ff4d4d;">Seal Sealed</h2>
+        <button class="close-modal-btn" onclick="closeOverlay('modal-warning')">&times;</button>
+      </div>
+      <div class="modal-body" style="text-align:center;">
+        <p style="font-size:1.1rem; font-weight:bold; margin-bottom:15px;">"You need 3 fragments. Keep exploring!"</p>
+        <p style="font-size:0.8rem; color:#888;">Collected: <span id="warning-pieces-collected" style="color:var(--gold); font-weight:bold;">0/3</span></p>
+        <button class="modal-action-btn" onclick="closeOverlay('modal-warning')" style="margin-top:20px;">Resume Quest</button>
+      </div>
+    </div>
+  </div>
+
   
